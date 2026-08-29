@@ -135,7 +135,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
-MEDIA_ROOT = [BASE_DIR / 'media']
+MEDIA_ROOT = BASE_DIR / 'media'
 
 CKEDITOR_5_CONFIGS = {
     'default': {
@@ -149,12 +149,6 @@ CKEDITOR_5_CONFIGS = {
     }
 }
 CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-
-
-
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 MAILERS = {
     "default": {

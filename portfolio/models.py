@@ -36,4 +36,4 @@ class Project(models.Model):
         return self.title
 
     def tech_list(self):
-        return [t.strip() for t in self.tech_stack.split(',') if t.strip()] #ty: ignore
+        return [t.strip() for t in self.tech_stack.split(',') if t.strip()]

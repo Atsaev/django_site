@@ -6,8 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "django>=6.1",
-    "django-ckeditor>=6.7.3",
+    "django-ckeditor-5>=0.2.20",
     "django-imagekit>=6.1.0",
+    "django-stubs>=6.1.0",
     "pillow>=12.3.0",
     "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.3",

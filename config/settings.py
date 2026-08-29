@@ -43,8 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    'ckeditor',
-    'ckeditor_uploader',
+    'django_ckeditor_5',
     'imagekit',
 
     'blog',
@@ -138,13 +137,18 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = [BASE_DIR / 'media']
 
-CKEDITOR_UPLOAD_PATH = 'uploads/'
-CKEDITOR_CONFIGS = {
+CKEDITOR_5_CONFIGS = {
     'default': {
-        'toolbar': 'full',
-        'heigh': 400,
+        'toolbar': [
+                    "heading", "|",
+                    "bold", "italic", "link",
+                    "bulletedList", "numberedList", "blockQuote", "|",
+                    "imageUpload", "insertTable", "|",
+                    "undo", "redo",
+                ],
     }
 }
+CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 
 

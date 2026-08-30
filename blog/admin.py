@@ -19,8 +19,9 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Challenge)
 class ChallengeAdmin(admin.ModelAdmin):
-    list_display = ("name", "start_date", "days_total", "active")
-    list_editable = ("active",)
+    list_display = ("title", "start_date", "total_days", "is_active")
+    list_editable = ("is_active",)
+    prepopulated_fields = {"slug": ("title",)}
 
 
 @admin.register(JobSearchStats)
@@ -33,9 +34,9 @@ class JobSearchStatsAdmin(admin.ModelAdmin):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "status", "views", "published_at")
+    list_display = ("title", "category", "challenge", "status", "views", "published_at")
     list_editable = ("status",)
-    list_filter = ("status", "category")
+    list_filter = ("status", "category", "challenge")
     search_fields = ("title", "tags__name")
     filter_horizontal = ("tags",)
     prepopulated_fields: ClassVar[dict] = {"slug": ("title",)}

@@ -20,9 +20,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from blog.views import challenge_detail
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
+    path("challenge/<slug:slug>/", challenge_detail, name="challenge_detail"),
     path("", include("portfolio.urls")),
     path("blog/", include("blog.urls")),
     path("resume/", include("resume.urls")),

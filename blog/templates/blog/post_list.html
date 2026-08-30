@@ -18,18 +18,21 @@
       {% if active_challenge %}
       <div class="challenge-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">
-          <span class="challenge-label mono"><i class="fa-solid fa-fire"></i> {{ active_challenge.name }}</span>
-          <span class="challenge-day mono">День {{ active_challenge.day_number }} из {{ active_challenge.days_total }}</span>
+          <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
+            <a href="{% url 'challenge_detail' active_challenge.slug %}" class="challenge-link">{{ active_challenge.title }}</a>
+          </span>
+          <span class="challenge-day mono">День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}</span>
         </div>
         <div class="progress" role="progressbar"
-             aria-label="{{ active_challenge.name }}"
-             aria-valuenow="{{ active_challenge.progress }}"
+             aria-label="{{ active_challenge.title }}"
+             aria-valuenow="{{ active_challenge.progress_percent }}"
              aria-valuemin="0" aria-valuemax="100">
-          <div class="progress-bar" style="width: {{ active_challenge.progress }}%;"></div>
+          <div class="progress-bar" style="width: {{ active_challenge.progress_percent }}%;"></div>
         </div>
-        {% if active_challenge.day_number >= active_challenge.days_total %}
+        {% if active_challenge.current_day >= active_challenge.total_days %}
         <div class="challenge-done mono">челлендж завершён 🎉</div>
         {% endif %}
+        <div class="challenge-more"><a href="{% url 'challenge_detail' active_challenge.slug %}">история целиком →</a></div>
       </div>
       {% endif %}
 

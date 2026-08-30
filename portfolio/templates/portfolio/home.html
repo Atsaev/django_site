@@ -35,6 +35,25 @@
 
 <div class="container"><div class="glow-divider"></div></div>
 
+{% if active_challenge %}
+<section class="container py-4">
+  <div class="challenge-strip">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-2">
+      <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
+        <a href="{% url 'challenge_detail' active_challenge.slug %}" class="challenge-link">{{ active_challenge.title }}</a>
+      </span>
+      <span class="challenge-day mono">День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}</span>
+    </div>
+    <div class="progress" role="progressbar"
+         aria-label="{{ active_challenge.title }}"
+         aria-valuenow="{{ active_challenge.progress_percent }}"
+         aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" style="width: {{ active_challenge.progress_percent }}%;"></div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <!-- PROJECTS -->
 <section class="container py-5" id="projects">
   <div class="section-eyebrow mb-2">// проекты</div>

@@ -33,7 +33,7 @@ def post_list(request, category_slug=None):
         'posts': posts,
         'categories': Category.objects.all(),
         'current_category': current,
-        'active_challenge': Challenge.objects.filter(active=True).first(),
+        'active_challenge': Challenge.objects.filter(is_active=True).first(),
         'job_stats': _job_stats(),
     }
     # htmx-запрос: отдаём только фрагмент ленты (без обёртки страницы)
@@ -48,6 +48,21 @@ def _job_stats():
     if not stats or not (stats.applications or stats.interviews or stats.offers):
         return None
     return stats
+
+
+def challenge_detail(request, slug):
+    """Страница челленджа: прогресс-бар + таймлайн постов по дням."""
+    challenge = get_object_or_404(Challenge, slug=slug)
+    posts = (
+        challenge.posts.filter(status='published')
+        .select_related('category')
+        .prefetch_related('tags')
+        .order_by('day_number', 'published_at')
+    )
+    return render(request, 'blog/challenge_detail.html', {
+        'challenge': challenge,
+        'posts': posts,
+    })
 
 
 def post_detail(request, slug):

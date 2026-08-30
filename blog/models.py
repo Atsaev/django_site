@@ -8,25 +8,39 @@ from .translit import translit_slug
 
 
 class Challenge(models.Model):
-    """Активный челлендж: «День N из 30» на странице блога."""
-    name = models.CharField(max_length=100, verbose_name='Название')
+    """Челлендж: «День N из 30» — прогресс считается из дат, а не парсится из тегов."""
+    title = models.CharField(max_length=200, verbose_name='Название')  # «30 дней после курса»
+    slug = models.SlugField(unique=True, blank=True, verbose_name='Слаг')
     start_date = models.DateField(verbose_name='Дата старта')
-    days_total = models.PositiveIntegerField(default=30, verbose_name='Всего дней')
-    active = models.BooleanField(default=True, verbose_name='Активен')
+    total_days = models.PositiveIntegerField(default=30, verbose_name='Всего дней')
+    description = models.TextField(blank=True, verbose_name='Описание')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
 
     class Meta:
         verbose_name = 'Челлендж'
         verbose_name_plural = 'Челленджи'
+        ordering = ['-start_date']
 
     def __str__(self):
-        return self.name
+        return self.title
 
-    def day_number(self) -> int:
-        days = (date.today() - self.start_date).days + 1
-        return max(1, min(days, self.days_total))
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = translit_slug(self.title)
+        super().save(*args, **kwargs)
 
-    def progress(self) -> int:
-        return round(self.day_number() / self.days_total * 100)
+    @property
+    def current_day(self) -> int:
+        delta = (date.today() - self.start_date).days + 1
+        return max(0, min(delta, self.total_days))
+
+    @property
+    def progress_percent(self) -> int:
+        return round(self.current_day / self.total_days * 100)
+
+    def days_left(self) -> int:
+        """Сколько дней осталось до конца челленджа."""
+        return max(0, self.total_days - self.current_day)
 
 
 class JobSearchStats(models.Model):
@@ -100,6 +114,11 @@ class Post(models.Model):
         Category, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='posts', verbose_name='Категория',
     )
+    challenge = models.ForeignKey(
+        Challenge, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='posts', verbose_name='Челлендж',
+    )
+    day_number = models.PositiveIntegerField(null=True, blank=True, verbose_name='День N')
     project_slug = models.CharField(
         max_length=100, blank=True, verbose_name='Проект (слаг на главной)',
         help_text='Слаг проекта из /admin/portfolio/project/ — ссылка на его карточку на главной',
@@ -121,4 +140,8 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = translit_slug(self.title)
+        # автопростановка дня: следующий после последнего в этом челлендже
+        if self.challenge_id and self.day_number is None:
+            last = self.challenge.posts.aggregate(models.Max('day_number'))
+            self.day_number = (last['day_number__max'] or 0) + 1
         super().save(*args, **kwargs)

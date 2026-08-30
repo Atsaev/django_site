@@ -168,7 +168,8 @@ body {
 #feed.htmx-request { opacity: 0.55; transition: opacity 0.15s ease; }
 
 /* виджет челленджа «День N из 30» */
-.challenge-card {
+.challenge-card,
+.challenge-progress {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
@@ -183,19 +184,42 @@ body {
   gap: 8px;
 }
 .challenge-label i { color: var(--accent); }
+.challenge-link { color: var(--accent); text-decoration: none; }
+.challenge-link:hover { text-decoration: underline; }
 .challenge-day { color: var(--accent); font-size: 0.8rem; white-space: nowrap; }
-.challenge-card .progress {
+.challenge-card .progress,
+.challenge-progress .progress,
+.challenge-strip .progress {
   background: var(--surface-2);
   border: 1px solid var(--border);
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
 }
-.challenge-card .progress-bar {
+.challenge-card .progress-bar,
+.challenge-progress .progress-bar,
+.challenge-strip .progress-bar {
   background: linear-gradient(90deg, var(--accent), #7ce0bf);
   border-radius: 999px;
 }
 .challenge-done { color: var(--accent); font-size: 0.78rem; margin-top: 8px; }
+.challenge-more { margin-top: 8px; }
+.challenge-more a {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: 'JetBrains Mono', monospace;
+  text-decoration: none;
+}
+.challenge-more a:hover { color: var(--accent); }
+
+/* полоса челленджа на главной */
+.challenge-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
 
 /* статистика поиска работы */
 .stat-chip {

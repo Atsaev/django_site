@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ challenge.title }} — atsaev-dev.ru{% endblock %}
+
+{% block content %}
+<section class="container py-5" style="max-width: 760px;">
+  <div class="section-eyebrow mb-2">// челлендж</div>
+  <h1 class="mb-1">{{ challenge.title }}</h1>
+  {% if challenge.description %}<p class="text-muted mb-4">{{ challenge.description }}</p>{% endif %}
+
+  <div class="challenge-card my-4">
+    <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">
+      <span class="challenge-label mono"><i class="fa-solid fa-fire"></i> День {{ challenge.current_day }} из {{ challenge.total_days }}</span>
+      <span class="challenge-day mono">{{ challenge.progress_percent }}%{% if challenge.days_left %} · осталось {{ challenge.days_left }} дн.{% endif %}</span>
+    </div>
+    <div class="progress" role="progressbar"
+         aria-label="{{ challenge.title }}"
+         aria-valuenow="{{ challenge.progress_percent }}"
+         aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" style="width: {{ challenge.progress_percent }}%;"></div>
+    </div>
+    {% if challenge.current_day >= challenge.total_days %}
+    <div class="challenge-done mono">челлендж завершён 🎉</div>
+    {% endif %}
+  </div>
+
+  <div class="timeline">
+    {% for post in posts %}
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-card">
+        <div class="timeline-date mono">
+          {% if post.day_number %}День {{ post.day_number }}{% if post.published_at %} · {% endif %}{% endif %}
+          {{ post.published_at|date:"j E Y" }}
+        </div>
+        <a href="{% url 'post_detail' post.slug %}" class="timeline-title">{{ post.title }}</a>
+        {% if post.excerpt %}<p class="timeline-excerpt">{{ post.excerpt }}</p>{% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">В этом челлендже постов пока нет.</p>
+    {% endfor %}
+  </div>
+
+  <a href="{% url 'post_list' %}" class="btn btn-outline-mono mt-4"><i class="fa-solid fa-arrow-left"></i> Все посты</a>
+</section>
+{% endblock %}

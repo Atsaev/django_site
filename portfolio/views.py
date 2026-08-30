@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from blog.models import Post
+from blog.models import Challenge, Post
 
 from .models import Project
 
@@ -14,5 +14,6 @@ def home(request):
         {
             "projects": projects,
             "latest_posts": latest_posts,
+            "active_challenge": Challenge.objects.filter(is_active=True).first(),
         },
     )

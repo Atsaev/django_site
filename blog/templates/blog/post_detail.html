@@ -24,6 +24,24 @@
   </div>
   {% endif %}
 
+  {% if post.challenge %}
+  <div class="challenge-progress mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">
+      <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
+        <a href="{% url 'challenge_detail' post.challenge.slug %}" class="challenge-link">{{ post.challenge.title }}</a>
+      </span>
+      <span class="challenge-day mono">День {{ post.day_number|default:post.challenge.current_day }} из {{ post.challenge.total_days }}</span>
+    </div>
+    <div class="progress" role="progressbar"
+         aria-label="{{ post.challenge.title }}"
+         aria-valuenow="{{ post.challenge.progress_percent }}"
+         aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" style="width: {{ post.challenge.progress_percent }}%;"></div>
+    </div>
+    <div class="challenge-more"><a href="{% url 'challenge_detail' post.challenge.slug %}">история целиком →</a></div>
+  </div>
+  {% endif %}
+
   {% if toc|length >= 2 %}
   <nav class="toc mb-4" aria-label="Оглавление">
     <div class="toc-title">// оглавление</div>

@@ -133,7 +133,6 @@ CKEDITOR_5_CONFIGS = {
                 "resizeImage",
             ],
             "resizeOptions": [
-                {"name": "resizeImage:original", "value": None, "label": "Оригинал"},
                 {"name": "resizeImage:25", "value": "25", "label": "25%"},
                 {"name": "resizeImage:50", "value": "50", "label": "50%"},
                 {"name": "resizeImage:75", "value": "75", "label": "75%"},

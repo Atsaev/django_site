@@ -198,7 +198,7 @@ atsaev-dev.ru {
         reverse_proxy projects-smart-fuzzer-1:8000
     }
 
-    handle /media/* {
+    handle_path /media/* {
         root * /srv/atsaev/media
         file_server
     }

@@ -8,15 +8,15 @@ class Project(models.Model):
         ('live', 'Live'),
         ('wip', 'In progress'),
     ]
-
     title = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
-    short_description = models.CharField(max_length=200),
+    short_description = models.CharField(max_length=200)
     tech_stack = models.CharField(
         max_length=200,
         help_text='Через запятую: FastAPI, Postgres, Docker',
     )
     github_url = models.URLField(blank=True)
+    demo_url = models.URLField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='live')
     cover_image = ProcessedImageField(
         upload_to='projects/',

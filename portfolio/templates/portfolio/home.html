@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ацаев Хасан — Python backend developer{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="container" style="padding-top: 30px; padding-bottom: 40px;">
+  <div class="row justify-content-center">
+    <div class="col-lg-9 text-center mb-4">
+      <div class="hero-eyebrow mb-2">// python backend developer</div>
+      <h1 class="hero-heading mb-0">Пишу API, которые <span class="accent-underline">не падают</span> в 3 часа ночи</h1>
+    </div>
+  </div>
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+      <div class="terminal mt-4">
+        <div class="terminal-header">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="mono text-muted ms-2" style="font-size:0.8rem;">zsh</span>
+        </div>
+        <div class="terminal-body mono">
+          <span id="typed-line"></span>
+          <span id="typed-json"></span>
+          <div id="resp-meta" class="mt-3"><span class="cursor"></span> <span class="text-muted" style="font-size:0.8rem;">200 OK · 42ms</span></div>
+        </div>
+      </div>
+      <div class="d-flex gap-3 mt-4 justify-content-center flex-wrap">
+        <a href="{% url 'resume' %}" class="btn btn-accent px-4 py-2">Резюме</a>
+        <a href="#projects" class="btn btn-outline-mono px-4 py-2">Проекты</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container"><div class="glow-divider"></div></div>
+
+<!-- PROJECTS -->
+<section class="container py-5" id="projects">
+  <div class="section-eyebrow mb-2">// проекты</div>
+  <div class="row g-3 mt-1">
+    {% for project in projects %}
+    <div class="col-md-4">
+      <div class="project-card">
+        {% if project.cover_image %}
+          <img src="{{ project.cover_image.url }}" alt="{{ project.title }}" class="w-100 mb-3 rounded" style="height:180px; object-fit:cover;">
+        {% endif %}
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="endpoint-path">{{ project.title }}</span>
+          {% if project.status == "live" %}
+            <span class="badge-live badge">live</span>
+          {% else %}
+            <span class="badge-tag badge">wip</span>
+          {% endif %}
+        </div>
+        <p class="endpoint-desc">{{ project.short_description }}</p>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          {% for tech in project.tech_list %}
+            <span class="badge-tag badge">{{ tech }}</span>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2">
+          {% if project.demo_url %}
+            <a href="{{ project.demo_url }}" target="_blank" class="btn btn-outline-mono btn-sm">Демо</a>
+          {% endif %}
+          {% if project.github_url %}
+            <a href="{{ project.github_url }}" target="_blank" class="btn btn-outline-mono btn-sm">GitHub</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+      <p class="text-muted">Проекты пока не добавлены — зайди в /admin/ и добавь первый.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- LATEST POSTS -->
+{% if latest_posts %}
+<section class="container py-5">
+  <div class="section-eyebrow mb-2">// последние посты</div>
+  <div class="row justify-content-center mt-1">
+    <div class="col-lg-9">
+      {% for post in latest_posts %}
+      <a href="{% url 'post_detail' post.slug %}" class="post-row">
+        <div>
+          <div class="post-title mb-1">{{ post.title }}</div>
+          <div class="d-flex gap-2">
+            {% for tag in post.tag_list %}
+              <span class="badge-tag badge">{{ tag }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <span class="post-date">{{ post.published_at|date:"d M" }}</span>
+          <span class="arrow"><i class="fa-solid fa-arrow-right"></i></span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- TERMINAL EASTER EGG -->
+<div class="terminal-egg" id="terminalEgg">
+  <div class="terminal-egg-header">
+    <span class="terminal-egg-title">guest@atsaev-dev:~$</span>
+    <div class="terminal-egg-controls">
+      <button class="egg-btn close" id="eggClose" aria-label="Закрыть"></button>
+      <button class="egg-btn minimize" id="eggMinimize" aria-label="Свернуть"></button>
+    </div>
+  </div>
+  <div class="terminal-egg-body">
+    <div><span class="egg-prompt">$</span> ./whoami --verbose<span class="egg-cursor" id="eggCursor">|</span></div>
+    <div class="egg-output" id="eggOutput"></div>
+    <div class="egg-hint" id="eggHint">нажми Enter или кликни сюда</div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // typing effect в хиро-терминале
+  const lineEl = document.getElementById('typed-line');
+  const jsonEl = document.getElementById('typed-json');
+  const metaEl = document.getElementById('resp-meta');
+
+  const line = '$ curl https://atsaev-dev.ru/api/me';
+  const jsonHTML = [
+    '{',
+    '  <span class="json-key">"name"</span>: <span class="json-str">"Ацаев Хасан"</span>,',
+    '  <span class="json-key">"role"</span>: <span class="json-str">"Python backend developer"</span>,',
+    '  <span class="json-key">"stack"</span>: [<span class="json-str">"FastAPI"</span>, <span class="json-str">"Django"</span>, <span class="json-str">"PostgreSQL"</span>],',
+    '  <span class="json-key">"status"</span>: <span class="json-status">"open_to_work"</span>,',
+    '  <span class="json-key">"response_time_ms"</span>: 42',
+    '}'
+  ].join('\n');
+
+  function typeText(el, text, speed, cb) {
+    let i = 0;
+    (function step() {
+      if (i <= text.length) { el.textContent = text.slice(0, i); i++; setTimeout(step, speed); }
+      else if (cb) cb();
+    })();
+  }
+
+  function revealHTML(el, html, duration, cb) {
+    let i = 0;
+    (function step() {
+      if (i <= html.length) { el.innerHTML = html.slice(0, i); i += 3; setTimeout(step, duration); }
+      else { el.innerHTML = html; if (cb) cb(); }
+    })();
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      typeText(lineEl, line, 28, () => {
+        setTimeout(() => revealHTML(jsonEl, jsonHTML, 6, () => metaEl.classList.add('show')), 200);
+      });
+    }, 400);
+  });
+
+  // terminal easter egg
+  (function () {
+    const egg = document.getElementById('terminalEgg');
+    const output = document.getElementById('eggOutput');
+    const hint = document.getElementById('eggHint');
+    const cursor = document.getElementById('eggCursor');
+    let ran = false;
+
+    setTimeout(() => egg.classList.add('show'), 2500);
+
+    const lines = [
+      { text: '🛠️ Загрузка скиллов: <span class="egg-loading" id="eggLoading">[__________] 0%</span>', class: 'success', isLoading: true },
+      { text: '✅ Python — "гуглю как терминатор, нахожу как детектив"', class: 'success' },
+      { text: '✅ Django/FastAPI — "видел это не только в туториале, обещаю"', class: 'success' },
+      { text: '⚠️ PostgreSQL — "пишу запросы, а он возвращает мне жизненные уроки"', class: 'warning' },
+      { text: '🤖 LangGraph — построил 4 агента, они переписываются активнее, чем я в чатах', class: 'info' },
+      { text: '📦 Docker — "умею запускать, иногда даже помню про --rm"', class: 'success' },
+      { text: '📚 Soft skills: "сплю с документацией под подушкой" + "5 лет продаж — умею закрывать не только сделки, но и баги"', class: 'highlight' },
+      { text: '🎯 Результат: <span class="egg-highlight">УЖЕ НЕ JUNIOR, но ещё не настолько крут, чтобы ходить на собесы ради развлечения и отказывать офферам.</span>', class: 'highlight' },
+      { text: '📧 Пишите, даже если просто хотите похвалить код', class: 'info' },
+    ];
+
+    function run() {
+      if (ran) return;
+      ran = true;
+      cursor.style.display = 'none';
+      hint.style.display = 'none';
+      output.innerHTML = '';
+
+      lines.forEach((line, i) => {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.className = `line ${line.class}`;
+          el.innerHTML = line.text;
+          output.appendChild(el);
+          output.scrollTop = output.scrollHeight;
+
+          if (line.isLoading) {
+            const bar = el.querySelector('#eggLoading');
+            const frames = ['[__________] 0%', '[███_______] 30%', '[██████____] 60%', '[████████__] 80%', '[██████████] 100% (вчера было 20%!)'];
+            frames.forEach((frame, step) => {
+              setTimeout(() => { bar.textContent = frame; }, step * 250);
+            });
+          }
+        }, i * 550);
+      });
+    }
+
+    egg.addEventListener('click', run);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+
+    document.getElementById('eggClose').addEventListener('click', (e) => {
+      e.stopPropagation();
+      egg.style.display = 'none';
+    });
+    document.getElementById('eggMinimize').addEventListener('click', (e) => {
+      e.stopPropagation();
+      egg.classList.remove('show');
+      setTimeout(() => egg.classList.add('show'), 4000);
+    });
+  })();
+</script>
+{% endblock %}

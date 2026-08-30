@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+  body { font-family: 'Helvetica', 'Arial', sans-serif; color: #1a1a1a; padding: 32px; font-size: 14px; }
+  h1 { margin-bottom: 2px; font-size: 26px; }
+  .role { color: #555; margin-top: 0; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #2f8f74; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-top: 22px; }
+  .skill-cat { margin-bottom: 10px; }
+  .skill-cat b { display: block; margin-bottom: 4px; }
+  .skill { display: inline-block; background: #f0f0f0; padding: 3px 8px; margin: 2px 4px 2px 0; border-radius: 4px; font-size: 12px; }
+  .exp-item { margin-bottom: 12px; }
+  .exp-title { font-weight: bold; }
+  .exp-meta { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .project { margin-bottom: 10px; }
+  .project-title { font-weight: bold; }
+  .edu-item { margin-bottom: 8px; }
+  .contacts { margin-top: 20px; font-size: 12px; color: #666; }
+</style>
+</head>
+<body>
+{% if photo_url %}
+    <img src="{{ photo_url }}" alt="{{ profile.name }}" style="width:90px; height:90px; border-radius:8px; object-fit:cover; float:left; margin-right:20px;">
+{% endif %}
+<h1>{{ profile.name }}</h1>
+<p class="role">{{ profile.role }} · {{ profile.location }}</p>
+
+<h2>О себе</h2>
+<div>{{ profile.about|safe }}</div>
+
+<h2>Опыт работы</h2>
+{% for exp in experiences %}
+  <div class="exp-item">
+    <div class="exp-title">{{ exp.position }} — {{ exp.company }}</div>
+    <div class="exp-meta">{{ exp.period_text }}</div>
+    <div>{{ exp.description|safe }}</div>
+  </div>
+{% endfor %}
+
+<h2>Навыки</h2>
+{% for category in skill_categories %}
+  <div class="skill-cat">
+    <b>{{ category.title }}</b>
+    {% for skill in category.skills.all %}<span class="skill">{{ skill.name }}</span>{% endfor %}
+  </div>
+{% endfor %}
+
+<h2>Проекты</h2>
+{% for project in projects %}
+  <div class="project">
+    <div class="project-title">{{ project.title }}</div>
+    <div>{{ project.short_description }}</div>
+  </div>
+{% endfor %}
+
+<h2>Образование</h2>
+{% for item in education %}
+  <div class="edu-item">
+    <b>{{ item.title }}</b> — {{ item.date_text }}<br>
+    {% if item.place %}{{ item.place }}{% endif %}
+  </div>
+{% endfor %}
+
+<h2>Языки</h2>
+<p>{% for lang in languages %}{{ lang.name }} ({{ lang.level }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
+
+<div class="contacts">
+    <span class="mono text-muted">
+  <i class="fa-solid fa-envelope"></i> {{ profile.email }} ·
+  <i class="fa-brands fa-telegram"></i> {{ profile.telegram }} ·
+  <i class="fa-brands fa-github"></i> {{ profile.github }}
+</span>
+</div>
+
+</body>
+</html>

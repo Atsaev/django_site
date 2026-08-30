@@ -15,7 +15,7 @@ class Command(BaseCommand):
                 short_description="Мультиагентная система анализа уязвимостей на LangGraph — 4 агента (Analyst → Risk → Mitigation → Reporter). Сокращает разбор CVE с ~30 минут до 2–3.",
                 tech_stack="LangGraph, DeepSeek, FastAPI, Docker",
                 github_url="https://github.com/Atsaev/cve-agent",
-                demo_url="https://atsaev-dev.ru/agents/docs",
+                demo_url="https://atsaev-dev.ru/cve/docs",
                 status="live",
                 order=1,
             ),

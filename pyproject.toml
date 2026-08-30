@@ -8,9 +8,15 @@ dependencies = [
     "django>=6.1",
     "django-ckeditor-5>=0.2.20",
     "django-imagekit>=6.1.0",
-    "django-stubs>=6.1.0",
+    "granian>=2.8.2",
     "pillow>=12.3.0",
     "playwright>=1.62.0",
     "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.3",
+    "whitenoise>=6.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs>=6.1.0",
 ]

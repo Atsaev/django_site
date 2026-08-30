@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -23,24 +25,18 @@ def resume(request):
 
 
 def resume_pdf(request):
-    from playwright.sync_api import sync_playwright
+    from weasyprint import HTML  # импорт ленивый: pango нужен только для PDF
 
     context = _get_resume_context()
 
-    # делаем абсолютный URL для фото, если оно есть
+    # фото подставляем локальным файлом, чтобы WeasyPrint рендерил без сети
     if context["profile"] and context["profile"].photo:
-        context["photo_url"] = request.build_absolute_uri(context["profile"].photo.url)
+        context["photo_url"] = Path(context["profile"].photo.path).as_uri()
     else:
         context["photo_url"] = None
 
     html_string = render_to_string("resume/resume_pdf.html", context)
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.set_content(html_string, wait_until="networkidle")
-        pdf_bytes = page.pdf(format="A4", print_background=True, margin={"top": "20px", "bottom": "20px"})
-        browser.close()
+    pdf_bytes = HTML(string=html_string).write_pdf()
 
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="atsaev_resume.pdf"'

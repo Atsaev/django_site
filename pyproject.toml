@@ -10,9 +10,9 @@ dependencies = [
     "django-imagekit>=6.1.0",
     "granian>=2.8.2",
     "pillow>=12.3.0",
-    "playwright>=1.62.0",
     "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.3",
+    "weasyprint>=62.3",
     "whitenoise>=6.12.0",
 ]
 

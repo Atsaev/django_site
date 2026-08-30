@@ -2,8 +2,6 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
   body { font-family: 'Helvetica', 'Arial', sans-serif; color: #1a1a1a; padding: 32px; font-size: 14px; }
   h1 { margin-bottom: 2px; font-size: 26px; }
@@ -23,7 +21,7 @@
 </head>
 <body>
 {% if photo_url %}
-    <img src="{{ photo_url }}" alt="{{ profile.name }}" style="width:90px; height:90px; border-radius:8px; object-fit:cover; float:left; margin-right:20px;">
+    <img src="{{ photo_url }}" alt="{{ profile.name }}" style="width:90px; height:90px; border-radius:8px; float:left; margin-right:20px;">
 {% endif %}
 <h1>{{ profile.name }}</h1>
 <p class="role">{{ profile.role }} · {{ profile.location }}</p>
@@ -68,11 +66,9 @@
 <p>{% for lang in languages %}{{ lang.name }} ({{ lang.level }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
 
 <div class="contacts">
-    <span class="mono text-muted">
-  <i class="fa-solid fa-envelope"></i> {{ profile.email }} ·
-  <i class="fa-brands fa-telegram"></i> {{ profile.telegram }} ·
-  <i class="fa-brands fa-github"></i> {{ profile.github }}
-</span>
+    {{ profile.email }} ·
+    {{ profile.telegram }} ·
+    {{ profile.github }}
 </div>
 
 </body>

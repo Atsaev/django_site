@@ -13,7 +13,7 @@
 - **Статика:** WhiteNoise (collectstatic выполняется на этапе сборки образа)
 - **Редактор контента:** django-ckeditor-5
 - **Обработка изображений:** django-imagekit + Pillow
-- **Генерация PDF:** Playwright (headless Chromium)
+- **Генерация PDF:** WeasyPrint (HTML→PDF, Pango)
 - **Контейнеризация:** Docker, Docker Compose
 - **CI/CD:** GitHub Actions — сборка и публикация образа в GitHub Container Registry
 - **Прокси / TLS:** Caddy
@@ -58,8 +58,15 @@ cd django_site
 
 ```bash
 uv sync
-uv run playwright install chromium
 ```
+
+На macOS для генерации PDF (WeasyPrint) нужен Pango:
+
+```bash
+brew install pango
+```
+
+В Docker-образе Pango ставится автоматически через apt — отдельно ничего делать не нужно.
 
 ### 3. Поднять PostgreSQL
 
@@ -113,7 +120,7 @@ uv run python manage.py runserver
 
 Workflow `.github/workflows/deploy.yml` срабатывает при пуше в ветку `main`:
 
-1. Собирает Docker-образ из `Dockerfile` (установка зависимостей через uv, Chromium для Playwright, `collectstatic`)
+1. Собирает Docker-образ из `Dockerfile` (установка зависимостей через uv, Pango для WeasyPrint, `collectstatic`)
 2. Публикует образ в GitHub Container Registry: `ghcr.io/atsaev/portfolio-site:latest`
 
 ### Запуск на сервере (Docker Compose)

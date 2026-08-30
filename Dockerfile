@@ -13,14 +13,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
     curl \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz-subset0 \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-
-RUN uv run playwright install --with-deps chromium
 
 COPY . .
 

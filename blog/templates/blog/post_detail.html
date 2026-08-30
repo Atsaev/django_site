@@ -15,6 +15,20 @@
     {% endfor %}
   </div>
   {% endif %}
-  <div class="post-content">{{ post.content|safe }}</div>
+
+  {% if toc|length >= 2 %}
+  <nav class="toc mb-4" aria-label="Оглавление">
+    <div class="toc-title">// оглавление</div>
+    <ul>
+      {% for item in toc %}
+      <li class="toc-l{{ item.level }}">
+        <a href="#{{ item.id }}">{{ item.title }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  <div class="post-content">{{ content_html|safe }}</div>
 </article>
 {% endblock %}

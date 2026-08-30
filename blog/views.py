@@ -1,7 +1,8 @@
-from django.db.models import F, Prefetch
+from django.db.models import F
 from django.shortcuts import get_object_or_404, render
 
 from .models import Category, Post
+from .toc import build_toc
 
 
 def post_list(request, category_slug=None):
@@ -26,4 +27,9 @@ def post_list(request, category_slug=None):
 def post_detail(request, slug):
     post = get_object_or_404(Post, slug=slug, status='published')
     Post.objects.filter(pk=post.pk).update(views=F('views') + 1)
-    return render(request, 'blog/post_detail.html', {'post': post})
+    toc, content_html = build_toc(post.content)
+    return render(request, 'blog/post_detail.html', {
+        'post': post,
+        'toc': toc,
+        'content_html': content_html,
+    })

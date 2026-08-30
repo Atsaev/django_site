@@ -32,4 +32,32 @@ def post_detail(request, slug):
         'post': post,
         'toc': toc,
         'content_html': content_html,
+        'related': related_posts(post),
     })
+
+
+def related_posts(post: Post, limit: int = 3) -> list[Post]:
+    """Посты той же рубрики; при нехватке — по общим тегам."""
+    qs = (
+        Post.objects.filter(status='published')
+        .exclude(pk=post.pk)
+        .select_related('category')
+        .prefetch_related('tags')
+    )
+    result: list[Post] = []
+
+    if post.category_id:
+        result = list(qs.filter(category_id=post.category_id)[:limit])
+
+    if len(result) < limit:
+        taken = {post.pk, *(p.pk for p in result)}
+        tag_ids = list(post.tags.values_list('pk', flat=True))
+        if tag_ids:
+            by_tags = (
+                qs.filter(tags__in=tag_ids)
+                .exclude(pk__in=taken)
+                .distinct()[: limit - len(result)]
+            )
+            result += list(by_tags)
+
+    return result

@@ -211,6 +211,17 @@ body {
 .post-content h2[id],
 .post-content h3[id],
 .post-content h4[id] { scroll-margin-top: 110px; }
+
+/* related posts */
+.post-hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0 1.5rem; }
+.related-title {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 1rem;
+}
 .arrow { opacity: 0; transform: translateX(-6px); transition: all 0.2s ease; color: var(--accent); margin-left: 10px; }
 
 /* post content (blog detail, resume about/experience) — rich CKEditor output */

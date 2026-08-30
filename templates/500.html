@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}500 — ошибка сервера{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 720px;">
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="dot" style="background:#ff5f57;"></span>
+      <span class="dot" style="background:#ffbd2e;"></span>
+      <span class="dot" style="background:#28c840;"></span>
+      <span class="mono" style="color:var(--text-muted);font-size:0.78rem;margin-left:10px;">oqp001: ~/error — zsh</span>
+    </div>
+    <div class="terminal-body" style="min-height:0;">
+      <div class="mono text-muted mb-2">$ curl -sI https://atsaev-dev.ru<span class="egg-cursor"></span></div>
+      <div class="mono mb-3">
+        <span style="color:var(--accent);">HTTP/1.1</span> <span style="color:#ff5f57;">500 Internal Server Error</span>
+      </div>
+      <h1 class="mono" style="font-size:4rem;font-weight:700;color:var(--text);line-height:1;">500</h1>
+      <p style="color:var(--text-muted);margin-top:14px;margin-bottom:0;">
+        Сервер споткнулся об <code style="color:var(--accent);">UnhandledException</code>.<br>
+        Уже разбираемся — попробуйте ещё раз через пару минут.
+      </p>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-accent" href="{% url 'home' %}">GET /home</a>
+        <a class="btn btn-outline-mono" href="{% url 'home' %}#projects">GET /projects</a>
+        <a class="btn btn-outline-mono" href="{% url 'post_list' %}">GET /blog</a>
+        <a class="btn btn-outline-mono" href="{% url 'resume' %}">GET /resume</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

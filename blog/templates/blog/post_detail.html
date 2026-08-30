@@ -5,7 +5,7 @@
 <article class="container py-5" style="max-width: 760px;">
   <div class="mono text-muted mb-2" style="font-size:0.8rem;">
     {{ post.published_at|date:"d M Y" }} · {{ post.views }} views
-    {% if post.category %} · <a href="{% url 'post_list' %}#cat-{{ post.category.slug }}" style="color:var(--accent);">{{ post.category.name }}</a>{% endif %}
+    {% if post.category %} · <a href="{% url 'post_list_category' post.category.slug %}" style="color:var(--accent);">{{ post.category.name }}</a>{% endif %}
   </div>
   <h1 class="mb-3">{{ post.title }}</h1>
   {% if post.tags.all %}

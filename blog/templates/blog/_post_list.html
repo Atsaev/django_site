@@ -1,0 +1,39 @@
+{% comment %}Фрагмент ленты: рубрики-чипы + список постов. Рендерится и как часть страницы, и как htmx-ответ.{% endcomment %}
+<div class="cat-chips d-flex gap-2 flex-wrap mb-4" id="cat-chips">
+  <a href="{% url 'post_list' %}"
+     class="cat-chip{% if not current_category %} active{% endif %}"
+     hx-get="{% url 'post_list' %}"
+     hx-target="#feed"
+     hx-swap="innerHTML"
+     hx-push-url="true">Все</a>
+  {% for cat in categories %}
+  <a href="{% url 'post_list_category' cat.slug %}"
+     class="cat-chip{% if current_category == cat %} active{% endif %}"
+     hx-get="{% url 'post_list_category' cat.slug %}"
+     hx-target="#feed"
+     hx-swap="innerHTML"
+     hx-push-url="true">{{ cat.name }}</a>
+  {% endfor %}
+</div>
+
+{% for post in posts %}
+<a href="{% url 'post_detail' post.slug %}" class="post-row">
+  <div>
+    <div class="post-title mb-1">{{ post.title }}</div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if post.category %}
+        <span class="badge-cat badge">{{ post.category.name }}</span>
+      {% endif %}
+      {% for tag in post.tags.all %}
+        <span class="badge-tag badge">{{ tag.name }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="d-flex align-items-center">
+    <span class="post-date">{{ post.published_at|date:"d M" }}</span>
+    <span class="arrow"><i class="fa-solid fa-arrow-right"></i></span>
+  </div>
+</a>
+{% empty %}
+<p class="text-muted">В этой рубрике постов пока нет.</p>
+{% endfor %}

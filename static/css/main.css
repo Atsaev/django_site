@@ -151,7 +151,21 @@ body {
 .post-row:hover .post-title { color: var(--accent); }
 .post-row:hover .arrow { opacity: 1; transform: translateX(0); }
 .post-title { color: var(--text); transition: color 0.15s ease; }
-.post-date { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+/* рубрики-чипы (htmx-фильтр) */
+.cat-chip {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.cat-chip:hover { border-color: var(--accent); color: var(--accent); }
+.cat-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+#feed.htmx-request { opacity: 0.55; transition: opacity 0.15s ease; }
 .arrow { opacity: 0; transform: translateX(-6px); transition: all 0.2s ease; color: var(--accent); margin-left: 10px; }
 
 /* post content (blog detail, resume about/experience) — rich CKEditor output */

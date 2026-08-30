@@ -66,9 +66,7 @@
 <p>{% for lang in languages %}{{ lang.name }} ({{ lang.level }}){% if not forloop.last %}, {% endif %}{% endfor %}</p>
 
 <div class="contacts">
-    {{ profile.email }} ·
-    {{ profile.telegram }} ·
-    {{ profile.github }}
+    ✉ {{ profile.email }} · @{{ profile.telegram }} · {{ profile.github }}
 </div>
 
 </body>

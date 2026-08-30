@@ -101,15 +101,49 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 CKEDITOR_5_CONFIGS = {
-    'default': {
-        'toolbar': [
-                    "heading", "|",
-                    "bold", "italic", "link",
-                    "bulletedList", "numberedList", "blockQuote", "|",
-                    "imageUpload", "insertTable", "|",
-                    "undo", "redo",
-                ],
-    }
+    "default": {
+        "toolbar": [
+            "heading", "|",
+            "bold", "italic", "underline", "strikethrough", "subscript", "superscript", "removeFormat", "|",
+            "fontSize", "fontColor", "fontBackgroundColor", "highlight", "|",
+            "alignment", "|",
+            "bulletedList", "numberedList", "todoList", "|",
+            "outdent", "indent", "|",
+            "link", "blockQuote", "insertTable", "|",
+            "uploadImage", "mediaEmbed", "|",
+            "codeBlock", "horizontalLine", "specialCharacters", "|",
+            "findAndReplace", "sourceEditing", "|",
+            "undo", "redo",
+        ],
+        "codeBlock": {
+            "languages": [
+                {"language": "python", "label": "Python"},
+                {"language": "bash", "label": "Bash"},
+                {"language": "javascript", "label": "JavaScript"},
+                {"language": "json", "label": "JSON"},
+                {"language": "sql", "label": "SQL"},
+                {"language": "yaml", "label": "YAML"},
+                {"language": "dockerfile", "label": "Dockerfile"},
+            ],
+        },
+        "image": {
+            "toolbar": [
+                "imageTextAlternative", "linkImage", "|",
+                "imageStyle:alignLeft", "imageStyle:alignCenter", "imageStyle:alignRight", "|",
+                "resizeImage",
+            ],
+            "resizeOptions": [
+                {"name": "resizeImage:original", "value": None, "label": "Оригинал"},
+                {"name": "resizeImage:25", "value": "25", "label": "25%"},
+                {"name": "resizeImage:50", "value": "50", "label": "50%"},
+                {"name": "resizeImage:75", "value": "75", "label": "75%"},
+            ],
+        },
+        "table": {
+            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells", "tableProperties", "tableCellProperties"],
+        },
+        "height": 500,
+    },
 }
 CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 

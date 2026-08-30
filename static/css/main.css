@@ -166,6 +166,23 @@ body {
 .cat-chip:hover { border-color: var(--accent); color: var(--accent); }
 .cat-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 #feed.htmx-request { opacity: 0.55; transition: opacity 0.15s ease; }
+
+/* RSS */
+.rss-link {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.rss-link:hover { color: var(--accent); border-color: var(--accent); }
+.rss-link i { color: #f26522; }
 .arrow { opacity: 0; transform: translateX(-6px); transition: all 0.2s ease; color: var(--accent); margin-left: 10px; }
 
 /* post content (blog detail, resume about/experience) — rich CKEditor output */

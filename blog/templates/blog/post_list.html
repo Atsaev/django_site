@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Блог — atsaev-dev.ru{% endblock %}
 
+{% block extra_head %}
+<link rel="alternate" type="application/rss+xml" title="atsaev-dev.ru — блог (RSS)" href="{% url 'blog_feed' %}">
+{% endblock %}
+
 {% block content %}
 <section class="container py-5">
-  <div class="section-eyebrow mb-2">// последние посты</div>
+  <div class="section-eyebrow mb-2 d-flex justify-content-between align-items-center">
+    <span>// последние посты</span>
+    <a href="{% url 'blog_feed' %}" class="rss-link" title="RSS-фид">
+      <i class="fa-solid fa-rss"></i> RSS
+    </a>
+  </div>
   <div class="row justify-content-center mt-1">
     <div class="col-lg-9">
       <div id="feed">{% include "blog/_post_list.html" %}</div>

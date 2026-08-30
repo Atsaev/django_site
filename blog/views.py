@@ -19,6 +19,8 @@ def post_list(request, category_slug=None):
         'posts': posts,
         'categories': Category.objects.all(),
         'current_category': current,
+        # таймлайн осмыслен только при 2+ постах в рубрике
+        'can_timeline': bool(current) and posts.count() >= 2,
         'active_challenge': Challenge.objects.filter(is_active=True).first(),
         'job_stats': _job_stats(),
     }
@@ -31,6 +33,10 @@ def post_list(request, category_slug=None):
 def category_timeline(request, category_slug):
     """Хронологический таймлайн любой рубрики: от ранних постов к новым.
 
+    Правило сортировки: строго по дате публикации (published_at) по
+    возрастанию — это хронология событий, а не порядок написания,
+    поэтому бэкдейт даты осознанно переставляет пост в истории.
+    При равных датах порядок стабилизирует created_at.
     Используется и для «Пути» (/blog/path/), и для любой другой рубрики
     (/blog/timeline/<slug>/): разбор фреймворка, дневник и т.д.
     """
@@ -57,13 +63,19 @@ def _job_stats():
 
 
 def challenge_detail(request, slug):
-    """Страница челленджа: прогресс-бар + таймлайн постов по дням."""
+    """Страница челленджа: прогресс-бар + таймлайн постов.
+
+    Правило сортировки: строго по day_number (День 1 → 2 → …), дата
+    публикации на порядок не влияет — она только для отображения.
+    При равных day_number порядок стабилизирует created_at, чтобы
+    между прогонами не было недетерминированного порядка.
+    """
     challenge = get_object_or_404(Challenge, slug=slug)
     posts = (
         challenge.posts.filter(status='published')
         .select_related('category')
         .prefetch_related('tags')
-        .order_by('day_number', 'published_at')
+        .order_by('day_number', 'created_at')
     )
     return render(request, 'blog/challenge_detail.html', {
         'challenge': challenge,

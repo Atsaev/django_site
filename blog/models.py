@@ -27,6 +27,11 @@ class Challenge(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = translit_slug(self.title)
+        # ровно один активный челлендж: сохранение активного выключает остальные.
+        # exclude(pk=self.pk) — иначе повторное сохранение деактивирует сам себя
+        # до того, как super().save() запишет изменения.
+        if self.is_active:
+            Challenge.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
     @property

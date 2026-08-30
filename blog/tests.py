@@ -34,6 +34,40 @@ class ChallengeModelTests(TestCase):
         )
         self.assertEqual(challenge.days_left(), 20)
 
+    def test_creating_active_deactivates_others(self):
+        first = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=5),
+        )
+        second = Challenge.objects.create(
+            title='100 дней кода', start_date=date.today() - timedelta(days=2),
+        )
+        first.refresh_from_db()
+        self.assertFalse(first.is_active)
+        self.assertTrue(second.is_active)
+        self.assertEqual(Challenge.objects.filter(is_active=True).count(), 1)
+
+    def test_reactivating_switches_active(self):
+        first = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=5),
+        )
+        second = Challenge.objects.create(
+            title='100 дней кода', start_date=date.today() - timedelta(days=2),
+        )
+        first.is_active = True
+        first.save()
+        second.refresh_from_db()
+        self.assertTrue(first.is_active)
+        self.assertFalse(second.is_active)
+
+    def test_resaving_active_keeps_self_active(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=5),
+        )
+        challenge.save()  # повторное сохранение не должно деактивировать сам себя
+        challenge.refresh_from_db()
+        self.assertTrue(challenge.is_active)
+        self.assertEqual(Challenge.objects.filter(is_active=True).count(), 1)
+
 
 class BlogViewsTests(TestCase):
     def setUp(self):
@@ -78,10 +112,37 @@ class BlogViewsTests(TestCase):
         response = self.client.get(reverse('category_timeline', args=[self.category.slug]))
         self.assertContains(response, 'Разбор FastAPI от установки до деплоя')
 
+    def test_timeline_orders_by_published_not_created(self):
+        # создан раньше, но опубликован позже — в истории встанет позже
+        early_created = Post.objects.create(
+            title='Написан раньше, опубликован позже', category=self.category,
+            status='published', published_at=date(2026, 5, 9),
+        )
+        late_created = Post.objects.create(
+            title='Написан позже, опубликован раньше', category=self.category,
+            status='published', published_at=date(2026, 5, 1),
+        )
+        response = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        pks = [p.pk for p in response.context['posts']]
+        # порядок ведёт дата публикации, а не дата создания
+        self.assertLess(pks.index(late_created.pk), pks.index(early_created.pk))
+
+    def test_timeline_fallback_text(self):
+        response = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        self.assertContains(response, 'Хронологический вид рубрики')
+
     def test_timeline_toggle_on_category_page(self):
+        Post.objects.create(
+            title='Второй пост', category=self.category,
+            status='published', published_at=date(2026, 5, 2),
+        )
         response = self.client.get(reverse('post_list_category', args=[self.category.slug]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'таймлайн')
+
+    def test_timeline_toggle_hidden_for_single_post(self):
+        response = self.client.get(reverse('post_list_category', args=[self.category.slug]))
+        self.assertNotContains(response, 'timeline-toggle')
 
     def test_post_list_widgets(self):
         Challenge.objects.create(
@@ -131,6 +192,40 @@ class BlogViewsTests(TestCase):
         self.assertContains(response, 'День 3 из 30')
         posts = list(response.context['posts'])
         self.assertEqual([p.day_number for p in posts], [1, 2])
+
+    def test_challenge_timeline_orders_by_day_not_date(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=2),
+        )
+        Post.objects.create(
+            title='День 6 (опубликован раньше)', challenge=challenge, day_number=6,
+            status='published', published_at=date(2026, 5, 1),
+        )
+        Post.objects.create(
+            title='День 5 (опубликован позже)', challenge=challenge, day_number=5,
+            status='published', published_at=date(2026, 5, 9),
+        )
+        response = self.client.get(reverse('challenge_detail', args=[challenge.slug]))
+        posts = list(response.context['posts'])
+        # даты публикации противоречат номерам — порядок всё равно строго по дням
+        self.assertEqual([p.day_number for p in posts], [5, 6])
+
+    def test_challenge_timeline_stable_for_equal_days(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=2),
+        )
+        a = Post.objects.create(
+            title='День 5 (первый)', challenge=challenge, day_number=5,
+            status='published', published_at=date(2026, 5, 1),
+        )
+        b = Post.objects.create(
+            title='День 5 (второй)', challenge=challenge, day_number=5,
+            status='published', published_at=date(2026, 5, 1),
+        )
+        response = self.client.get(reverse('challenge_detail', args=[challenge.slug]))
+        posts = list(response.context['posts'])
+        # равные day_number — порядок детерминирован по created_at
+        self.assertEqual([p.pk for p in posts], [a.pk, b.pk])
 
     def test_post_detail_shows_challenge_progress(self):
         challenge = Challenge.objects.create(

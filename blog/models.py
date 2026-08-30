@@ -2,6 +2,8 @@ from django.db import models
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 
+from .translit import translit_slug
+
 
 class Category(models.Model):
     """Рубрика поста: код, путь, проекты, дневник."""
@@ -18,7 +20,7 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+            self.slug = translit_slug(self.name)
         super().save(*args, **kwargs)
 
 
@@ -37,7 +39,7 @@ class Tag(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+            self.slug = translit_slug(self.name)
         super().save(*args, **kwargs)
 
 
@@ -70,5 +72,5 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)
+            self.slug = translit_slug(self.title)
         super().save(*args, **kwargs)

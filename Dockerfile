@@ -7,6 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
+ENV PATH="/app/.venv/bin:$PATH"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \

@@ -41,7 +41,7 @@
   <div class="row g-3 mt-1">
     {% for project in projects %}
     <div class="col-md-4">
-      <div class="project-card">
+      <div class="project-card" id="project-{{ project.slug }}">
         {% if project.cover_image %}
           <img src="{{ project.cover_image.url }}" alt="{{ project.title }}" class="w-100 mb-3 rounded" style="height:180px; object-fit:cover;">
         {% endif %}

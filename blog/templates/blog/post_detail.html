@@ -16,6 +16,14 @@
   </div>
   {% endif %}
 
+  {% if project %}
+  <div class="project-link-wrap mb-4">
+    <a class="project-link" href="{% url 'home' %}#project-{{ project.slug }}">
+      <i class="fa-solid fa-link"></i> Этот пост о проекте: {{ project.title }}
+    </a>
+  </div>
+  {% endif %}
+
   {% if toc|length >= 2 %}
   <nav class="toc mb-4" aria-label="Оглавление">
     <div class="toc-title">// оглавление</div>

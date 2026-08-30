@@ -167,6 +167,100 @@ body {
 .cat-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 #feed.htmx-request { opacity: 0.55; transition: opacity 0.15s ease; }
 
+/* виджет челленджа «День N из 30» */
+.challenge-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+.challenge-label {
+  color: var(--text);
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.challenge-label i { color: var(--accent); }
+.challenge-day { color: var(--accent); font-size: 0.8rem; white-space: nowrap; }
+.challenge-card .progress {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.challenge-card .progress-bar {
+  background: linear-gradient(90deg, var(--accent), #7ce0bf);
+  border-radius: 999px;
+}
+.challenge-done { color: var(--accent); font-size: 0.78rem; margin-top: 8px; }
+
+/* статистика поиска работы */
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.stat-chip i { color: var(--accent); }
+.stat-chip strong { color: var(--text); }
+
+/* таймлайн «Путь» */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px; top: 4px; bottom: 4px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent-glow), var(--border));
+}
+.timeline-item { position: relative; padding-bottom: 26px; }
+.timeline-dot {
+  position: absolute;
+  left: -28px; top: 6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.timeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.timeline-card:hover { border-color: var(--border-soft); transform: translateY(-2px); }
+.timeline-date { color: var(--accent); font-size: 0.75rem; margin-bottom: 6px; }
+.timeline-title { color: var(--text); font-size: 1.02rem; font-weight: 600; text-decoration: none; }
+.timeline-title:hover { color: var(--accent); }
+.timeline-excerpt { color: var(--text-muted); font-size: 0.88rem; margin: 8px 0 0; }
+
+/* ссылка на связанный проект в посте */
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--border-soft);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.project-link:hover { background: var(--accent); color: #06120d; }
+
 /* RSS */
 .rss-link {
   color: var(--text-muted);

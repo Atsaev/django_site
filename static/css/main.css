@@ -166,6 +166,19 @@ body {
 .cat-chip:hover { border-color: var(--accent); color: var(--accent); }
 .cat-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 #feed.htmx-request { opacity: 0.55; transition: opacity 0.15s ease; }
+/* переключатель на таймлайн рубрики */
+.timeline-toggle {
+  border: 1px dashed var(--border);
+  color: var(--accent);
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.timeline-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
 /* виджет челленджа «День N из 30» */
 .challenge-card,

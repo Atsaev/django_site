@@ -65,6 +65,24 @@ class BlogViewsTests(TestCase):
         self.assertEqual(posts, sorted(posts, key=lambda p: p.published_at))
         self.assertContains(response, 'День 5: первые отклики')
 
+    def test_timeline_for_any_category(self):
+        response = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Первый пост')
+        posts = list(response.context['posts'])
+        self.assertEqual(posts, sorted(posts, key=lambda p: p.published_at))
+
+    def test_timeline_shows_category_description(self):
+        self.category.description = 'Разбор FastAPI от установки до деплоя'
+        self.category.save()
+        response = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        self.assertContains(response, 'Разбор FastAPI от установки до деплоя')
+
+    def test_timeline_toggle_on_category_page(self):
+        response = self.client.get(reverse('post_list_category', args=[self.category.slug]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'таймлайн')
+
     def test_post_list_widgets(self):
         Challenge.objects.create(
             title='30 дней', start_date=date.today() - timedelta(days=4), total_days=30,

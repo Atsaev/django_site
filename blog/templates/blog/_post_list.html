@@ -14,6 +14,9 @@
      hx-swap="innerHTML"
      hx-push-url="true">{{ cat.name }}</a>
   {% endfor %}
+  {% if current_category %}
+  <a href="{% url 'category_timeline' current_category.slug %}" class="timeline-toggle">таймлайн →</a>
+  {% endif %}
 </div>
 
 {% for post in posts %}

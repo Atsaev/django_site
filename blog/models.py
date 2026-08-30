@@ -64,9 +64,13 @@ class JobSearchStats(models.Model):
 
 
 class Category(models.Model):
-    """Рубрика поста: код, путь, проекты, дневник."""
+    """Рубрика поста: код, путь, проекты, дневник.
+
+    description показывается как субтитр на странице-таймлайне рубрики.
+    """
     name = models.CharField(max_length=50, unique=True, verbose_name='Название')
     slug = models.SlugField(unique=True, verbose_name='Слаг')
+    description = models.TextField(blank=True, verbose_name='Описание')
 
     class Meta:
         verbose_name = 'Категория'

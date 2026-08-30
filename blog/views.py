@@ -6,9 +6,6 @@ from portfolio.models import Project
 from .models import Category, Challenge, JobSearchStats, Post
 from .toc import build_toc
 
-# Слаг рубрики «Путь» (транслитерация) — для хронологического таймлайна
-PATH_CATEGORY_SLUG = 'put'
-
 
 def post_list(request, category_slug=None):
     posts = Post.objects.filter(status='published')
@@ -16,17 +13,6 @@ def post_list(request, category_slug=None):
     if category_slug:
         current = get_object_or_404(Category, slug=category_slug)
         posts = posts.filter(category=current)
-
-    # Рубрика «Путь» при обычном переходе — хронологический таймлайн
-    # (самый ранний пост сверху, чтобы история читалась как история).
-    # htmx-фильтр из ленты отдаёт обычный фрагмент.
-    if current and current.slug == PATH_CATEGORY_SLUG and not request.headers.get('HX-Request'):
-        timeline = posts.select_related('category').prefetch_related('tags').order_by('published_at', 'created_at')
-        return render(request, 'blog/path_timeline.html', {
-            'posts': timeline,
-            'categories': Category.objects.all(),
-            'current_category': current,
-        })
 
     posts = posts.select_related('category').prefetch_related('tags')
     context = {
@@ -40,6 +26,26 @@ def post_list(request, category_slug=None):
     if request.headers.get('HX-Request'):
         return render(request, 'blog/_post_list.html', context)
     return render(request, 'blog/post_list.html', context)
+
+
+def category_timeline(request, category_slug):
+    """Хронологический таймлайн любой рубрики: от ранних постов к новым.
+
+    Используется и для «Пути» (/blog/path/), и для любой другой рубрики
+    (/blog/timeline/<slug>/): разбор фреймворка, дневник и т.д.
+    """
+    category = get_object_or_404(Category, slug=category_slug)
+    posts = (
+        Post.objects.filter(status='published', category=category)
+        .select_related('category')
+        .prefetch_related('tags')
+        .order_by('published_at', 'created_at')
+    )
+    return render(request, 'blog/category_timeline.html', {
+        'category': category,
+        'posts': posts,
+        'categories': Category.objects.all(),
+    })
 
 
 def _job_stats():

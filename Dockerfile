@@ -28,8 +28,8 @@ COPY . .
 
 RUN uv sync --frozen --no-dev
 
-RUN uv run python manage.py collectstatic --noinput
+RUN uv run --no-dev python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["uv", "run", "granian", "--interface", "wsgi", "config.wsgi:application", "--host", "0.0.0.0", "--port", "8000", "--workers", "3"]
+CMD ["uv", "run", "--no-dev", "granian", "--interface", "wsgi", "config.wsgi:application", "--host", "0.0.0.0", "--port", "8000", "--workers", "3"]

@@ -1,11 +1,25 @@
 from datetime import date, timedelta
+from io import BytesIO
+from tempfile import mkdtemp
+from types import SimpleNamespace
 
-from django.test import TestCase
+from django.contrib import admin
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 from portfolio.models import Project
 
-from .models import Category, Challenge, JobSearchStats, Post
+from .admin import PostAdmin, PostAdminForm
+from .models import REACTIONS, Category, Challenge, JobSearchStats, Post, PostReaction, Tag
+from .models import inflate_reactions
+
+
+def _png_bytes() -> bytes:
+    buf = BytesIO()
+    Image.new('RGB', (1200, 630), 'red').save(buf, 'PNG')
+    return buf.getvalue()
 
 
 class ChallengeModelTests(TestCase):
@@ -91,6 +105,43 @@ class BlogViewsTests(TestCase):
         response = self.client.get(reverse('post_list'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Первый пост')
+
+    def test_search_by_title(self):
+        response = self.client.get(reverse('post_list'), {'q': 'Первый'})
+        self.assertContains(response, 'Первый пост')
+        self.assertNotContains(response, 'День 5: первые отклики')
+
+    def test_search_by_tag(self):
+        tag, _ = Tag.objects.get_or_create(name='FastAPI')
+        self.post.tags.add(tag)
+        response = self.client.get(reverse('post_list'), {'q': 'fastapi'})
+        self.assertContains(response, 'Первый пост')
+
+    def test_search_by_content(self):
+        self.post.content = '<p>секретное слово из текста</p>'
+        self.post.save()
+        response = self.client.get(reverse('post_list'), {'q': 'секретное'})
+        self.assertContains(response, 'Первый пост')
+
+    def test_search_empty_query_returns_all(self):
+        response = self.client.get(reverse('post_list'), {'q': '   '})
+        self.assertContains(response, 'Первый пост')
+        self.assertContains(response, 'День 5: первые отклики')
+
+    def test_search_no_results(self):
+        response = self.client.get(reverse('post_list'), {'q': 'несуществующееслово'})
+        self.assertContains(response, 'ничего не найдено')
+
+    def test_search_shows_count(self):
+        response = self.client.get(reverse('post_list'), {'q': 'Первый'})
+        self.assertContains(response, 'найдено:')
+
+    def test_search_htmx_returns_partial(self):
+        response = self.client.get(
+            reverse('post_list'), {'q': 'Первый'}, HTTP_HX_REQUEST='true',
+        )
+        self.assertContains(response, 'cat-chips')
+        self.assertNotContains(response, 'search-box')
 
     def test_path_timeline_renders_and_sorted_ascending(self):
         response = self.client.get(reverse('path_timeline'))
@@ -250,6 +301,147 @@ class BlogViewsTests(TestCase):
         response = self.client.get(reverse('post_detail', args=[self.post.slug]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '#project-cve-agent')
+
+    def test_syntax_highlighting_loaded(self):
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'highlight.min.js')
+        self.assertContains(response, 'atom-one-dark')
+
+    def test_code_block_language_class_preserved(self):
+        self.post.content = (
+            '<h2>Пример</h2>'
+            '<pre><code class="language-python">def f():\n    return 1</code></pre>'
+        )
+        self.post.save()
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'language-python')
+
+    def test_post_detail_shows_reactions(self):
+        PostReaction.objects.create(post=self.post, reaction='like')
+        PostReaction.objects.create(post=self.post, reaction='dislike')
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'reactions')
+        self.assertContains(response, '👍')
+        self.assertContains(response, '👎')
+
+    def test_react_add(self):
+        response = self.client.post(
+            reverse('post_react', args=[self.post.slug]),
+            {'reaction': 'like', 'action': 'add'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PostReaction.objects.filter(post=self.post, reaction='like').count(), 1)
+
+    def test_react_remove_decrements(self):
+        PostReaction.objects.create(post=self.post, reaction='like')
+        PostReaction.objects.create(post=self.post, reaction='like')
+        response = self.client.post(
+            reverse('post_react', args=[self.post.slug]),
+            {'reaction': 'like', 'action': 'remove'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PostReaction.objects.filter(post=self.post, reaction='like').count(), 1)
+
+    def test_react_remove_at_zero_keeps_zero(self):
+        response = self.client.post(
+            reverse('post_react', args=[self.post.slug]),
+            {'reaction': 'dislike', 'action': 'remove'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(PostReaction.objects.filter(post=self.post, reaction='dislike').count(), 0)
+
+    def test_react_unknown_reaction_400(self):
+        response = self.client.post(
+            reverse('post_react', args=[self.post.slug]),
+            {'reaction': 'nope', 'action': 'add'},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_react_unknown_action_400(self):
+        response = self.client.post(
+            reverse('post_react', args=[self.post.slug]),
+            {'reaction': 'like', 'action': 'nope'},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_react_get_405(self):
+        response = self.client.get(reverse('post_react', args=[self.post.slug]))
+        self.assertEqual(response.status_code, 405)
+
+    def test_react_unpublished_404(self):
+        draft = Post.objects.create(
+            title='Черновик', category=self.category, status='draft',
+        )
+        response = self.client.post(
+            reverse('post_react', args=[draft.slug]),
+            {'reaction': 'like', 'action': 'add'},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_inflate_reactions_random(self):
+        inflate_reactions(self.post, 10)
+        rows = PostReaction.objects.filter(post=self.post)
+        self.assertEqual(rows.count(), 10)
+        self.assertTrue(all(r.reaction in REACTIONS for r in rows))
+
+    def test_admin_inflate_on_save(self):
+        form = SimpleNamespace(cleaned_data={'inflate_reactions': True, 'inflate_count': 7})
+        PostAdmin(Post, admin.site).save_model(None, self.post, form, False)
+        self.assertEqual(PostReaction.objects.filter(post=self.post).count(), 7)
+
+    def test_admin_no_inflate_when_unchecked(self):
+        form = SimpleNamespace(cleaned_data={'inflate_reactions': False, 'inflate_count': 7})
+        PostAdmin(Post, admin.site).save_model(None, self.post, form, False)
+        self.assertEqual(PostReaction.objects.filter(post=self.post).count(), 0)
+
+    def test_admin_form_shows_current_counts(self):
+        PostReaction.objects.create(post=self.post, reaction='like')
+        PostReaction.objects.create(post=self.post, reaction='like')
+        PostReaction.objects.create(post=self.post, reaction='dislike')
+        form = PostAdminForm(instance=self.post)
+        help_text = form.fields['inflate_reactions'].help_text
+        self.assertIn('Сейчас:', help_text)
+        self.assertIn('👍 2', help_text)
+        self.assertIn('👎 1', help_text)
+
+    def test_og_tags_on_post(self):
+        self.post.excerpt = 'Краткое описание'
+        self.post.save()
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'og:type" content="article"')
+        self.assertContains(response, 'og:title" content="Первый пост"')
+        self.assertContains(response, 'og:description" content="Краткое описание"')
+        self.assertContains(response, 'twitter:card" content="summary"')
+
+    def test_og_description_falls_back_to_title(self):
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'og:description" content="Первый пост"')
+
+    def test_og_image_when_post_has_image(self):
+        self.post.content = '<p>текст</p><figure><img src="/media/test.png" alt="x"></figure>'
+        self.post.save()
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'og:image" content="http://testserver/media/test.png"')
+
+    def test_og_image_absent_without_image(self):
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertNotContains(response, 'og:image')
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_og_image_cover_priority(self):
+        self.post.cover_image = SimpleUploadedFile(
+            'cover.png', _png_bytes(), content_type='image/png',
+        )
+        self.post.content = '<img src="/media/in-content.png" alt="x">'
+        self.post.save()
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'http://testserver' + self.post.cover_image.url)
+        self.assertNotContains(response, 'og:image" content="http://testserver/media/in-content.png"')
+
+    def test_og_website_on_home(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'og:type" content="website"')
+        self.assertContains(response, 'og:site_name" content="atsaev-dev.ru"')
 
     def test_home_shows_challenge_strip(self):
         Challenge.objects.create(

@@ -15,6 +15,24 @@
   </div>
   <div class="row justify-content-center mt-1">
     <div class="col-lg-9">
+      <div class="search-box mb-4">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="search" name="q" value="{{ query }}"
+               placeholder="Поиск по заголовкам, тегам и тексту…"
+               aria-label="Поиск по блогу"
+               hx-get="{% url 'post_list' %}"
+               hx-trigger="input changed delay:300ms, search"
+               hx-target="#feed"
+               hx-swap="innerHTML"
+               hx-push-url="true"
+               hx-include="this">
+        {% if query %}
+        <a href="{% url 'post_list' %}" class="search-clear"
+           hx-get="{% url 'post_list' %}" hx-target="#feed"
+           hx-swap="innerHTML" hx-push-url="true"
+           title="Сбросить поиск"><i class="fa-solid fa-xmark"></i></a>
+        {% endif %}
+      </div>
       {% if active_challenge %}
       <div class="challenge-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">

@@ -1,0 +1,11 @@
+{% comment %}Блок реакций: счётчики серверные, активное состояние — из localStorage браузера.{% endcomment %}
+<div class="reactions" id="reactions" data-slug="{{ post.slug }}">
+  {% csrf_token %}
+  {% for key, emoji, count in reaction_list %}
+  <button type="button" class="reaction-btn" data-slug="{{ post.slug }}" data-reaction="{{ key }}"
+          data-url="{% url 'post_react' post.slug %}" aria-label="Реакция {{ emoji }}">
+    <span class="reaction-emoji">{{ emoji }}</span>
+    <span class="reaction-count">{{ count }}</span>
+  </button>
+  {% endfor %}
+</div>

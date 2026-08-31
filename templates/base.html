@@ -5,10 +5,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}atsaev-dev.ru{% endblock %}</title>
+<meta property="og:site_name" content="atsaev-dev.ru">
+<meta property="og:locale" content="ru_RU">
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:title" content="atsaev-dev.ru — Python backend developer">
+<meta property="og:description" content="Заметки о коде, пути и проектах.">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% endblock %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="{% static 'css/main.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/atom-one-dark.min.css">
 {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -23,9 +32,15 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/dockerfile.min.js"></script>
 <script>
   const nav = document.getElementById('mainNav');
   window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 10));
+
+  // подсветка синтаксиса: при загрузке и после htmx-подмены контента
+  document.addEventListener('DOMContentLoaded', () => hljs.highlightAll());
+  document.body.addEventListener('htmx:afterSwap', () => hljs.highlightAll());
 </script>
 {% block extra_scripts %}{% endblock %}
 

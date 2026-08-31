@@ -1,9 +1,11 @@
-from django.db.models import F
+from django.db.models import Count, F, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_POST
 
 from portfolio.models import Project
 
-from .models import Category, Challenge, JobSearchStats, Post
+from .models import REACTIONS_EMOJI, Category, Challenge, JobSearchStats, Post, PostReaction
 from .toc import build_toc
 
 
@@ -14,13 +16,23 @@ def post_list(request, category_slug=None):
         current = get_object_or_404(Category, slug=category_slug)
         posts = posts.filter(category=current)
 
+    query = request.GET.get('q', '').strip()
+    can_timeline = bool(current) and posts.count() >= 2
+    if query:
+        posts = posts.filter(
+            Q(title__icontains=query)
+            | Q(excerpt__icontains=query)
+            | Q(content__icontains=query)
+            | Q(tags__name__icontains=query)
+        ).distinct()
+
     posts = posts.select_related('category').prefetch_related('tags')
     context = {
         'posts': posts,
         'categories': Category.objects.all(),
         'current_category': current,
-        # таймлайн осмыслен только при 2+ постах в рубрике
-        'can_timeline': bool(current) and posts.count() >= 2,
+        'can_timeline': can_timeline,
+        'query': query,
         'active_challenge': Challenge.objects.filter(is_active=True).first(),
         'job_stats': _job_stats(),
     }
@@ -83,6 +95,37 @@ def challenge_detail(request, slug):
     })
 
 
+def _reaction_list(post: Post) -> list[tuple[str, str, int]]:
+    """Список (ключ, эмодзи, счётчик) для блока реакций поста."""
+    counts = {
+        r['reaction']: r['count']
+        for r in post.reactions.values('reaction').annotate(count=Count('id'))
+    }
+    return [(key, emoji, counts.get(key, 0)) for key, emoji in REACTIONS_EMOJI]
+
+
+@require_POST
+def react(request, slug):
+    """Добавить/снять реакцию на пост. Возвращает обновлённый блок реакций."""
+    post = get_object_or_404(Post, slug=slug, status='published')
+    reaction = request.POST.get('reaction', '')
+    action = request.POST.get('action', 'add')
+    if reaction not in {key for key, _ in REACTIONS_EMOJI}:
+        return JsonResponse({'error': 'unknown reaction'}, status=400)
+    if action == 'add':
+        PostReaction.objects.create(post=post, reaction=reaction)
+    elif action == 'remove':
+        first = PostReaction.objects.filter(post=post, reaction=reaction).order_by('pk').first()
+        if first:
+            first.delete()
+    else:
+        return JsonResponse({'error': 'unknown action'}, status=400)
+    return render(request, 'blog/_reactions.html', {
+        'post': post,
+        'reaction_list': _reaction_list(post),
+    })
+
+
 def post_detail(request, slug):
     post = get_object_or_404(Post, slug=slug, status='published')
     Post.objects.filter(pk=post.pk).update(views=F('views') + 1)
@@ -92,12 +135,18 @@ def post_detail(request, slug):
     if post.project_slug:
         project = Project.objects.filter(slug=post.project_slug).first()
 
+    og_image = post.get_og_image()
+    if og_image:
+        og_image = request.build_absolute_uri(og_image)
+
     return render(request, 'blog/post_detail.html', {
         'post': post,
         'toc': toc,
         'content_html': content_html,
         'related': related_posts(post),
         'project': project,
+        'reaction_list': _reaction_list(post),
+        'og_image': og_image,
     })
 
 

@@ -180,6 +180,45 @@ body {
 }
 .timeline-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
+/* поиск по блогу */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-box .search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+.search-box input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 40px 9px 38px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--text-muted); }
+.search-clear {
+  position: absolute;
+  right: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+}
+.search-clear:hover { color: var(--accent); }
+.search-meta { color: var(--text-muted); font-size: 0.75rem; }
+
 /* виджет челленджа «День N из 30» */
 .challenge-card,
 .challenge-progress {
@@ -355,6 +394,32 @@ body {
 }
 .arrow { opacity: 0; transform: translateX(-6px); transition: all 0.2s ease; color: var(--accent); margin-left: 10px; }
 
+/* реакции */
+.reactions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2.2rem 0 1rem;
+}
+.reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.reaction-btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+.reaction-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.reaction-emoji { font-size: 1.05rem; line-height: 1; }
+.reaction-count { font-weight: 600; }
+
 /* post content (blog detail, resume about/experience) — rich CKEditor output */
 .post-content { color: var(--text); line-height: 1.85; font-size: 1.02rem; }
 .post-content p { margin-bottom: 1.3rem; }
@@ -414,14 +479,19 @@ body {
   padding: 1.1rem 1.3rem;
   margin: 1.6rem 0;
   overflow-x: auto;
+  color: var(--text); /* fallback, если тема hljs не загрузилась */
 }
 .post-content pre code {
   background: none;
   border: none;
   padding: 0;
-  color: var(--text);
   font-size: 0.9rem;
   line-height: 1.7;
+}
+/* highlight.js: фон и рамку даёт pre, hljs раскрашивает только токены */
+.post-content pre code.hljs {
+  background: transparent;
+  padding: 0;
 }
 
 .post-content ul,

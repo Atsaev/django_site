@@ -9,5 +9,6 @@ urlpatterns = [
     path("path/", views.category_timeline, {"category_slug": "put"}, name="path_timeline"),
     path("timeline/<slug:category_slug>/", views.category_timeline, name="category_timeline"),
     path("category/<str:category_slug>/", views.post_list, name="post_list_category"),
+    path("<slug:slug>/react/", views.react, name="post_react"),
     path("<slug:slug>/", views.post_detail, name="post_detail"),
 ]

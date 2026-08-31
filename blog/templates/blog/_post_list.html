@@ -19,6 +19,10 @@
   {% endif %}
 </div>
 
+{% if query %}
+<div class="search-meta mono mb-2">найдено: {{ posts|length }}</div>
+{% endif %}
+
 {% for post in posts %}
 <a href="{% url 'post_detail' post.slug %}" class="post-row">
   <div>
@@ -38,5 +42,9 @@
   </div>
 </a>
 {% empty %}
+{% if query %}
+<p class="text-muted">По запросу «{{ query }}» ничего не найдено.</p>
+{% else %}
 <p class="text-muted">В этой рубрике постов пока нет.</p>
+{% endif %}
 {% endfor %}

@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }} — atsaev-dev.ru{% endblock %}
 
+{% block og_tags %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ post.title }}">
+<meta property="og:description" content="{{ post.excerpt|default:post.title }}">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% if og_image %}
+<meta property="og:image" content="{{ og_image }}">
+{% endif %}
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ post.title }}">
+<meta name="twitter:description" content="{{ post.excerpt|default:post.title }}">
+{% endblock %}
+
 {% block content %}
 <article class="container py-5" style="max-width: 760px;">
   <div class="mono text-muted mb-2" style="font-size:0.8rem;">
@@ -57,6 +70,8 @@
 
   <div class="post-content">{{ content_html|safe }}</div>
 
+  {% include "blog/_reactions.html" %}
+
   {% if related %}
   <hr class="post-hr">
   <h2 class="related-title">// читайте также</h2>
@@ -76,4 +91,49 @@
   </div>
   {% endif %}
 </article>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // реакции: клик = добавить/снять; состояние «я реагировал» — в localStorage
+  function applyActiveReactions() {
+    document.querySelectorAll('.reaction-btn').forEach(function (btn) {
+      const key = 'react:' + btn.dataset.slug + ':' + btn.dataset.reaction;
+      btn.classList.toggle('active', localStorage.getItem(key) === '1');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', applyActiveReactions);
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.reaction-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const key = 'react:' + btn.dataset.slug + ':' + btn.dataset.reaction;
+    const removing = localStorage.getItem(key) === '1';
+
+    const form = new URLSearchParams();
+    form.set('reaction', btn.dataset.reaction);
+    form.set('action', removing ? 'remove' : 'add');
+    const csrf = document.querySelector('#reactions [name="csrfmiddlewaretoken"]');
+    if (csrf) form.set('csrfmiddlewaretoken', csrf.value);
+
+    fetch(btn.dataset.url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf ? csrf.value : '',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: form.toString()
+    })
+      .then(function (r) { if (!r.ok) throw new Error('react failed'); return r.text(); })
+      .then(function (html) {
+        const wrap = document.getElementById('reactions');
+        if (!wrap) return;
+        wrap.outerHTML = html;
+        if (removing) localStorage.removeItem(key); else localStorage.setItem(key, '1');
+        applyActiveReactions();
+      })
+      .catch(function () {});
+  });
+</script>
 {% endblock %}

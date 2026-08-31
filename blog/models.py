@@ -1,10 +1,24 @@
+import random
+import re
 from datetime import date
 
 from django.db import models
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
+from imagekit.models import ProcessedImageField
+from imagekit.processors import ResizeToFill
 
 from .translit import translit_slug
+
+# Типы реакций и их эмодзи (порядок — порядок кнопок в блоке реакций)
+REACTIONS_EMOJI = [
+    ('like', '👍'),
+    ('love', '❤️'),
+    ('fire', '🔥'),
+    ('rocket', '🚀'),
+    ('dislike', '👎'),
+]
+REACTIONS = [key for key, _ in REACTIONS_EMOJI]
 
 
 class Challenge(models.Model):
@@ -132,6 +146,16 @@ class Post(models.Model):
         max_length=100, blank=True, verbose_name='Проект (слаг на главной)',
         help_text='Слаг проекта из /admin/portfolio/project/ — ссылка на его карточку на главной',
     )
+    cover_image = ProcessedImageField(
+        upload_to='posts/',
+        processors=[ResizeToFill(1200, 630)],
+        format='WEBP',
+        options={'quality': 85},
+        blank=True,
+        null=True,
+        verbose_name='Обложка (для превью)',
+        help_text='Картинка для превью при шаринге. Приоритетнее первой картинки из текста.',
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts', verbose_name='Теги')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     views = models.PositiveIntegerField(default=0)
@@ -154,3 +178,41 @@ class Post(models.Model):
             last = self.challenge.posts.aggregate(models.Max('day_number'))
             self.day_number = (last['day_number__max'] or 0) + 1
         super().save(*args, **kwargs)
+
+    _IMG_SRC_RE = re.compile(r'<img[^>]+src="([^"]+)"')
+
+    def _first_image_src(self) -> str | None:
+        m = self._IMG_SRC_RE.search(self.content or '')
+        return m.group(1) if m else None
+
+    def get_og_image(self) -> str | None:
+        """Картинка для og:image: обложка или первая картинка из текста."""
+        if self.cover_image:
+            return self.cover_image.url
+        return self._first_image_src()
+
+
+class PostReaction(models.Model):
+    """Одна реакция читателя на пост: тип + время. Счётчики считаются из неё."""
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name='reactions', verbose_name='Пост',
+    )
+    reaction = models.CharField(
+        max_length=20, choices=REACTIONS_EMOJI, verbose_name='Реакция',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Когда')
+
+    class Meta:
+        verbose_name = 'Реакция'
+        verbose_name_plural = 'Реакции'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.post_id}:{self.reaction}'
+
+
+def inflate_reactions(post, count: int) -> None:
+    """Накрутка: случайные реакции (включая дизлайки) для поста."""
+    PostReaction.objects.bulk_create([
+        PostReaction(post=post, reaction=r) for r in random.choices(REACTIONS, k=count)
+    ])

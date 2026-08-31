@@ -30,7 +30,7 @@
         <a href="{% url 'post_list' %}" class="search-clear"
            hx-get="{% url 'post_list' %}" hx-target="#feed"
            hx-swap="innerHTML" hx-push-url="true"
-           title="Сбросить поиск"><i class="fa-solid fa-xmark"></i></a>
+           title="Сбросить поиск" aria-label="Сбросить поиск"><i class="fa-solid fa-xmark"></i></a>
         {% endif %}
       </div>
       {% if active_challenge %}

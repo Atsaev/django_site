@@ -683,3 +683,6 @@ footer a:hover { color: var(--accent); }
 .egg-output .highlight { color: #d9a5f5; font-weight: 600; }
 .egg-loading { font-family: 'JetBrains Mono', monospace; }
 .egg-output .warning { color: #e0b34d; }
+
+/* отступ под фиксированной навбар-панелью (обёртка контента в <main>) */
+main#content { padding-top: 100px; }

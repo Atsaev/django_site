@@ -99,9 +99,14 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Загрузки (поля моделей) и медиа CKEditor идут через хранилище,
+# транслитерирующее кириллические имена файлов.
+DEFAULT_FILE_STORAGE = 'config.storage.MediaFileSystemStorage'
+
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": DEFAULT_FILE_STORAGE,
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
@@ -159,7 +164,7 @@ CKEDITOR_5_CONFIGS = {
         "height": 500,
     },
 }
-CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+CKEDITOR_5_FILE_STORAGE = 'config.storage.MediaFileSystemStorage'
 
 MAILERS = {
     "default": {

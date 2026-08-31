@@ -13,11 +13,11 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from PIL import Image
 
+from config.storage import MediaFileSystemStorage
 from portfolio.models import Project
 
 from .admin import PostAdmin, PostAdminForm
-from .models import REACTIONS, Category, Challenge, JobSearchStats, Post, PostReaction, Tag
-from .models import inflate_reactions
+from .models import REACTIONS, Category, Challenge, JobSearchStats, Post, PostReaction, Tag, inflate_reactions
 from .translit import translit_slug
 
 
@@ -528,3 +528,16 @@ class BlogViewsTests(TestCase):
         response = self.client.get(reverse('home'))
         self.assertContains(response, 'challenge-strip')
         self.assertContains(response, 'День 5 из 30')
+
+    def test_media_storage_transliterates_cyrillic_filenames(self):
+        storage = MediaFileSystemStorage()
+        self.assertEqual(
+            storage.get_available_name('Снимок экрана 2024.png'),
+            'snimok-ekrana-2024.png',
+        )
+        # латинские имена почти не меняются
+        self.assertEqual(storage.get_available_name('hello world.jpg'), 'hello-world.jpg')
+        # дубли получают суффикс, а не склеиваются
+        self.assertTrue(storage.get_available_name('hello-world.jpg').startswith('hello-world'))
+        # расширение сохраняется, транслит не трогает его
+        self.assertTrue(storage.get_available_name('Отчет.pdf').endswith('.pdf'))

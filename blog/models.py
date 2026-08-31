@@ -4,7 +4,6 @@ from datetime import date
 
 from django.db import models
 from django.urls import reverse
-from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 from imagekit.models import ProcessedImageField
 from imagekit.processors import ResizeToFill

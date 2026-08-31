@@ -9,8 +9,7 @@ from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 
-from blog.models import Category, Post, Tag
-from blog.models import inflate_reactions
+from blog.models import Category, Post, Tag, inflate_reactions
 from blog.translit import translit_slug
 
 _TEMPLATES = [

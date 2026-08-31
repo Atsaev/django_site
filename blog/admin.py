@@ -4,8 +4,16 @@ from django import forms
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import REACTIONS_EMOJI, Category, Challenge, JobSearchStats, Post, PostReaction, Tag
-from .models import inflate_reactions
+from .models import (
+    REACTIONS_EMOJI,
+    Category,
+    Challenge,
+    JobSearchStats,
+    Post,
+    PostReaction,
+    Tag,
+    inflate_reactions,
+)
 
 
 class PostAdminForm(forms.ModelForm):

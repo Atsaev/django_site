@@ -21,3 +21,25 @@ dev = [
     "django-debug-toolbar>=7.1.1",
     "django-stubs>=6.1.0",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+# Базовый набор (как в большинстве Django-проектов).
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "RUF"]
+# RUF012 (мутабельные дефолты атрибутов класса) шумит на идиоматичных Django-конструкциях
+# (ordering в Meta, prepopulated_fields в ModelAdmin, dependencies/operations в миграциях) —
+# это декларативные данные, а не классовые переменные.
+# RUF001-RUF003 (неоднозначные символы) неприменимы в русскоязычном проекте.
+ignore = ["RUF012", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+# Миграции — генерируемый Django-код, трогать стиль не нужно.
+"blog/migrations/*" = ["DTZ", "E501"]
+"resume/migrations/*" = ["DTZ", "E501"]
+"portfolio/migrations/*" = ["DTZ", "E501"]
+"config/migrations/*" = ["DTZ", "E501"]
+# Seed-описания проектов — длинные маркетинговые тексты, переносы не улучшают.
+"portfolio/management/commands/seed_projects.py" = ["E501"]

@@ -1,0 +1,8 @@
+{
+  "include": ["blog", "config", "portfolio", "resume"],
+  "executionEnvironments": [],
+  "stubPath": ".venv/lib/python3.12/site-packages/django-stubs",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "pythonVersion": "3.12"
+}

@@ -1,0 +1,15 @@
+# atsaev-dev.ru
+
+> Ацаев Хасан — Python backend-разработчик. Персональный сайт-портфолио: проекты, блог и резюме. Личный дневник о пути в профессию, полезный и начинающим.
+
+## Key links
+
+- [Главная]({{ request.scheme }}://{{ request.get_host }}/): портфолио, последние проекты и посты
+- [Блог]({{ request.scheme }}://{{ request.get_host }}/blog/): заметки о коде, разработке и жизни
+- [Путь]({{ request.scheme }}://{{ request.get_host }}/blog/path/): хронология трудоустройства (отклики, собеседования, офферы)
+- [Резюме]({{ request.scheme }}://{{ request.get_host }}/resume/): полное резюме с генерацией PDF
+
+## Content types
+
+- Проекты: Python, backend, AI Security, инструменты безопасности (CVE, фаззинг, security-пайплайны)
+- Блог: Django, Python, PostgreSQL, Docker, FastAPI, devops, личный путь в IT

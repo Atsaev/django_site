@@ -31,6 +31,7 @@ urlpatterns = [
     path("challenge/<slug:slug>/", challenge_detail, name="challenge_detail"),
     path("sitemap.xml", sitemap, {"sitemaps": {"posts": PostSitemap}}, name="sitemap"),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
+    path("llms.txt", TemplateView.as_view(template_name="llms.txt", content_type="text/plain")),
     path("", include("portfolio.urls")),
     path("blog/", include("blog.urls")),
     path("resume/", include("resume.urls")),

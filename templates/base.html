@@ -18,9 +18,12 @@
 {% endblock %}
 <!-- Вся статика self-hosted: локально, без внешних CDN (быстрее, приватнее). -->
 <link href="{% static 'vendor/css/bootstrap.min.css' %}" rel="stylesheet">
-<link href="{% static 'vendor/css/all.min.css' %}" rel="stylesheet">
+<!-- FontAwesome и highlight.js-тема не нужны для первого экрана: грузим асинхронно, не блокируя рендер -->
+<link href="{% static 'vendor/css/all.min.css' %}" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="{% static 'vendor/css/all.min.css' %}" rel="stylesheet"></noscript>
 <link href="{% static 'css/main.css' %}" rel="stylesheet">
-<link href="{% static 'vendor/css/atom-one-dark.min.css' %}" rel="stylesheet">
+<link href="{% static 'vendor/css/atom-one-dark.min.css' %}" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="{% static 'vendor/css/atom-one-dark.min.css' %}" rel="stylesheet"></noscript>
 {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -41,9 +44,18 @@
   const nav = document.getElementById('mainNav');
   window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 10));
 
-  // подсветка синтаксиса: при загрузке и после htmx-подмены контента
-  document.addEventListener('DOMContentLoaded', () => hljs.highlightAll());
-  document.body.addEventListener('htmx:afterSwap', () => hljs.highlightAll());
+  // подсветка синтаксиса: запускаем когда браузер свободен, чтобы не блокировать первый рендер.
+  // hljs.highlightAll() синхронно обходит весь DOM — на тяжёлых постах это long task.
+  function runHighlight() {
+    if (typeof hljs === 'undefined') return;
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => hljs.highlightAll(), { timeout: 1500 });
+    } else {
+      window.setTimeout(hljs.highlightAll, 0);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', runHighlight);
+  document.body.addEventListener('htmx:afterSwap', runHighlight);
 </script>
 {% block extra_scripts %}{% endblock %}
 

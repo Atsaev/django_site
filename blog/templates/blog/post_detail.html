@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ post.title }} — atsaev-dev.ru{% endblock %}
 
+{% block meta_description %}
+<meta name="description" content="{{ post.excerpt|default:post.title }}">
+{% endblock %}
+
 {% block og_tags %}
 <meta property="og:type" content="article">
 <meta property="og:title" content="{{ post.title }}">

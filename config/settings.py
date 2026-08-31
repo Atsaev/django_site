@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
 
     'django_ckeditor_5',
     'imagekit',
@@ -25,6 +26,9 @@ INSTALLED_APPS = [
     'portfolio',
     'resume',
 ]
+
+if DEBUG:
+    INSTALLED_APPS += ['debug_toolbar']
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -36,6 +40,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+if DEBUG:
+    MIDDLEWARE = ['debug_toolbar.middleware.DebugToolbarMiddleware', *MIDDLEWARE]
+    INTERNAL_IPS = ['127.0.0.1']
 
 ROOT_URLCONF = "config.urls"
 
@@ -82,6 +90,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "ru"
 
 TIME_ZONE = "Europe/Moscow"
+
+SITE_ID = 1
 
 USE_I18N = True
 

@@ -127,7 +127,10 @@ def react(request, slug):
 
 
 def post_detail(request, slug):
-    post = get_object_or_404(Post, slug=slug, status='published')
+    post = get_object_or_404(
+        Post.objects.select_related('category', 'challenge').prefetch_related('tags'),
+        slug=slug, status='published',
+    )
     Post.objects.filter(pk=post.pk).update(views=F('views') + 1)
     toc, content_html = build_toc(post.content)
 
@@ -151,12 +154,15 @@ def post_detail(request, slug):
 
 
 def related_posts(post: Post, limit: int = 3) -> list[Post]:
-    """Посты той же рубрики; при нехватке — по общим тегам."""
+    """Посты той же рубрики; при нехватке — по общим тегам.
+
+    prefetch тегов не делаем: шаблон related-блока показывает только
+    рубрику, теги в нём не рендерятся (лишний запрос).
+    """
     qs = (
         Post.objects.filter(status='published')
         .exclude(pk=post.pk)
         .select_related('category')
-        .prefetch_related('tags')
     )
     result: list[Post] = []
 
@@ -165,7 +171,8 @@ def related_posts(post: Post, limit: int = 3) -> list[Post]:
 
     if len(result) < limit:
         taken = {post.pk, *(p.pk for p in result)}
-        tag_ids = list(post.tags.values_list('pk', flat=True))
+        # all() берёт prefetch-кэш, values_list() — нет (лишний запрос)
+        tag_ids = [t.pk for t in post.tags.all()]
         if tag_ids:
             by_tags = (
                 qs.filter(tags__in=tag_ids)

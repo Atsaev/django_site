@@ -10,10 +10,12 @@ _TRANSLIT = {
 }
 
 
-def translit_slug(text: str) -> str:
+def translit_slug(text: str, max_len: int = 50) -> str:
     """Русский текст -> латинский слаг: транслитерация + дефисы.
 
-    Пример: «Путь» -> «put», «Код» -> «kod».
+    Усекается до max_len (максимум SlugField), чтобы длинные заголовки
+    не падали с DataError на БД. Пример: «Путь» -> «put», «Код» -> «kod».
     """
     transliterated = ''.join(_TRANSLIT.get(ch, ch) for ch in text.lower())
-    return slugify(transliterated)
+    slug = slugify(transliterated)
+    return slug[:max_len].rstrip('-')

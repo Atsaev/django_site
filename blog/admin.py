@@ -4,7 +4,7 @@ from django import forms
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import REACTIONS_EMOJI, Category, Challenge, JobSearchStats, Post, Tag
+from .models import REACTIONS_EMOJI, Category, Challenge, JobSearchStats, Post, PostReaction, Tag
 from .models import inflate_reactions
 
 
@@ -70,12 +70,18 @@ class JobSearchStatsAdmin(admin.ModelAdmin):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     form = PostAdminForm
+    actions = ["reset_reactions"]
     list_display = ("title", "category", "challenge", "status", "views", "published_at")
     list_editable = ("status",)
     list_filter = ("status", "category", "challenge")
     search_fields = ("title", "tags__name")
     filter_horizontal = ("tags",)
     prepopulated_fields: ClassVar[dict] = {"slug": ("title",)}
+
+    @admin.action(description='Сбросить реакции у выбранных постов')
+    def reset_reactions(self, request, queryset):
+        deleted = PostReaction.objects.filter(post__in=queryset).delete()[0]
+        self.message_user(request, f'Реакции удалены: {deleted}.')
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

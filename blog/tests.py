@@ -4,8 +4,12 @@ from tempfile import mkdtemp
 from types import SimpleNamespace
 
 from django.contrib import admin
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.core.management import call_command
+from django.db import connection
+from django.test import RequestFactory, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from PIL import Image
 
@@ -14,6 +18,7 @@ from portfolio.models import Project
 from .admin import PostAdmin, PostAdminForm
 from .models import REACTIONS, Category, Challenge, JobSearchStats, Post, PostReaction, Tag
 from .models import inflate_reactions
+from .translit import translit_slug
 
 
 def _png_bytes() -> bytes:
@@ -442,6 +447,79 @@ class BlogViewsTests(TestCase):
         response = self.client.get(reverse('home'))
         self.assertContains(response, 'og:type" content="website"')
         self.assertContains(response, 'og:site_name" content="atsaev-dev.ru"')
+
+    def test_meta_description_on_post(self):
+        self.post.excerpt = 'Описание для меты'
+        self.post.save()
+        response = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertContains(response, 'name="description" content="Описание для меты"')
+
+    def test_meta_description_on_home(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'name="description"')
+
+    def test_sitemap_contains_posts(self):
+        response = self.client.get(reverse('sitemap'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.post.slug)
+
+    def test_robots_txt(self):
+        response = self.client.get('/robots.txt')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'User-agent: *')
+        self.assertContains(response, 'sitemap.xml')
+
+    def test_admin_reset_reactions_action(self):
+        PostReaction.objects.create(post=self.post, reaction='like')
+        PostReaction.objects.create(post=self.post, reaction='dislike')
+        admin_obj = PostAdmin(Post, admin.site)
+        admin_obj.message_user = lambda request, message: None
+        qs = Post.objects.filter(pk=self.post.pk)
+        admin_obj.reset_reactions(None, qs)
+        self.assertEqual(PostReaction.objects.filter(post=self.post).count(), 0)
+
+    def test_reset_reactions_action_registered(self):
+        user = User.objects.create_superuser('admin', 'a@a.ru', 'x')
+        req = RequestFactory().get('/admin/blog/post/')
+        req.user = user
+        admin_obj = PostAdmin(Post, admin.site)
+        self.assertIn('reset_reactions', admin_obj.get_actions(req))
+
+    def test_translit_slug_truncated_to_max_len(self):
+        long_title = 'Почему PostgreSQL — это не так страшно, как кажется новичку после курса'
+        slug = translit_slug(long_title)
+        self.assertLessEqual(len(slug), 50)
+        self.assertFalse(slug.endswith('-'))
+
+    def test_seed_command_creates_posts(self):
+        before = Post.objects.filter(status='published').count()
+        call_command('seed_demo_posts', count=3)
+        self.assertEqual(Post.objects.filter(status='published').count(), before + 3)
+
+    def _query_count(self, url):
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(url)
+        return len(ctx.captured_queries)
+
+    def test_post_list_queries_constant_with_scale(self):
+        base = self._query_count(reverse('post_list'))
+        for i in range(20):
+            Post.objects.create(
+                title=f'Масштаб {i}', category=self.category,
+                status='published', published_at=date(2026, 5, i + 1),
+            )
+        # N+1 проявился бы ростом запросов — а их количество не меняется
+        self.assertEqual(self._query_count(reverse('post_list')), base)
+
+    def test_post_detail_queries_constant_with_scale(self):
+        base = self._query_count(reverse('post_detail', args=[self.post.slug]))
+        for i in range(20):
+            Post.objects.create(
+                title=f'Масштаб {i}', category=self.category,
+                status='published', published_at=date(2026, 5, i + 1),
+            )
+        # related_posts ограничены и остаются константными запросами
+        self.assertEqual(self._query_count(reverse('post_detail', args=[self.post.slug])), base)
 
     def test_home_shows_challenge_strip(self):
         Challenge.objects.create(

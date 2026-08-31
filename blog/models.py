@@ -3,6 +3,7 @@ import re
 from datetime import date
 
 from django.db import models
+from django.urls import reverse
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 from imagekit.models import ProcessedImageField
@@ -159,7 +160,7 @@ class Post(models.Model):
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts', verbose_name='Теги')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
     views = models.PositiveIntegerField(default=0)
-    published_at = models.DateField(blank=True, null=True)
+    published_at = models.DateField(blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -169,6 +170,9 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse('post_detail', args=[self.slug])
 
     def save(self, *args, **kwargs):
         if not self.slug:

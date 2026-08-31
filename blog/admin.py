@@ -35,7 +35,7 @@ class PostAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # при редактировании показываем текущие счётчики рядом с чекбоксом,
+        # при редактировании показываем текущие счётчики рядом с чекбоксом накрутки,
         # чтобы не накрутить поверх уже собранных реакций
         if self.instance.pk:
             counts = dict(

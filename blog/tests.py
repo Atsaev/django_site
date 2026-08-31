@@ -15,9 +15,18 @@ from PIL import Image
 
 from config.storage import MediaFileSystemStorage
 from portfolio.models import Project
+from resume.models import Profile
 
 from .admin import PostAdmin, PostAdminForm
-from .models import REACTIONS, Category, Challenge, JobSearchStats, Post, PostReaction, Tag, inflate_reactions
+from .models import (
+    REACTIONS,
+    Category,
+    Challenge,
+    Post,
+    PostReaction,
+    Tag,
+    inflate_reactions,
+)
 from .translit import translit_slug
 
 
@@ -90,9 +99,9 @@ class ChallengeModelTests(TestCase):
 
 class BlogViewsTests(TestCase):
     def setUp(self):
-        # дефолтные рубрики уже создаются миграцией 0003
+        # дефолтные рубрики уже создаются миграцией 0003; bf-0017 ставит Путь is_timeline
         self.category, _ = Category.objects.get_or_create(name='Код')  # slug: kod
-        self.path_category, _ = Category.objects.get_or_create(name='Путь')  # slug: put
+        self.path_category, _ = Category.objects.get_or_create(name='Путь')  # slug: put (is_timeline=True из миграции)
         self.post = Post.objects.create(
             title='Первый пост',
             category=self.category,
@@ -204,12 +213,63 @@ class BlogViewsTests(TestCase):
         Challenge.objects.create(
             title='30 дней', start_date=date.today() - timedelta(days=4), total_days=30,
         )
-        JobSearchStats.objects.create(pk=1, applications=5, interviews=2, offers=1)
+        self.path_post.applications_count = 5
+        self.path_post.save()
         response = self.client.get(reverse('post_list'))
         self.assertContains(response, 'День 5 из 30')
-        self.assertContains(response, 'Отклики: <strong>5</strong>')
-        self.assertContains(response, 'Собеседования: <strong>2</strong>')
-        self.assertContains(response, 'Офферы: <strong>1</strong>')
+        # статистика поиска работы НЕ на общей ленте — она переехала на таймлайн «Пути»
+        self.assertNotContains(response, 'Отклики: <strong>5</strong>')
+
+    def test_job_stats_on_path_timeline_only(self):
+        self.path_post.applications_count = 12
+        self.path_post.interviews_count = 3
+        self.path_post.offers_count = 1
+        self.path_post.save()
+        # пост другой категории тоже вносит вклад в общую сумму
+        self.post.applications_count = 1
+        self.post.save()
+        path = self.client.get(reverse('path_timeline'))
+        self.assertContains(path, 'Отклики: <strong>13</strong>')
+        self.assertContains(path, 'Собеседования: <strong>3</strong>')
+        self.assertContains(path, 'Офферы: <strong>1</strong>')
+        # на другом таймлайне (рубрика «Код») статистики нет
+        other = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        self.assertNotContains(other, 'Отклики:')
+
+    def test_employment_status_on_path_timeline(self):
+        Profile.objects.get_or_create(
+            pk=1,
+            defaults={
+                'name': 'Тест', 'role': 'Backend', 'location': 'Москва',
+                'about': '<p>x</p>', 'email': 't@t.ru', 'employment_status': 'actively_looking',
+            },
+        )
+        path = self.client.get(reverse('path_timeline'))
+        self.assertContains(path, 'В активном поиске')
+        other = self.client.get(reverse('category_timeline', args=[self.category.slug]))
+        self.assertNotContains(other, 'path-status')
+
+    def test_job_badges_on_path_timeline(self):
+        self.path_post.applications_count = 2
+        self.path_post.interviews_count = 1
+        self.path_post.save()
+        path = self.client.get(reverse('path_timeline'))
+        self.assertContains(path, 'откликов: 2')
+        self.assertContains(path, 'собесов: 1')
+        self.assertNotContains(path, 'офферов:')  # счётчик офферов 0 — бейджа нет
+
+    def test_job_event_day_block_on_post_detail(self):
+        self.path_post.applications_count = 3
+        self.path_post.offers_count = 1
+        self.path_post.save()
+        r = self.client.get(reverse('post_detail', args=[self.path_post.slug]))
+        self.assertContains(r, 'job-event-day')
+        self.assertContains(r, 'отправлено откликов: 3')
+        self.assertContains(r, 'оффер: 1')
+
+    def test_no_job_event_block_when_zero(self):
+        r = self.client.get(reverse('post_detail', args=[self.post.slug]))
+        self.assertNotContains(r, 'job-event-day')
 
     def test_widgets_hidden_when_empty(self):
         response = self.client.get(reverse('post_list'))
@@ -541,3 +601,79 @@ class BlogViewsTests(TestCase):
         self.assertTrue(storage.get_available_name('hello-world.jpg').startswith('hello-world'))
         # расширение сохраняется, транслит не трогает его
         self.assertTrue(storage.get_available_name('Отчет.pdf').endswith('.pdf'))
+        # upload_to-префикс (каталог) сохраняется, транслит только имени
+        self.assertEqual(
+            storage.get_available_name('resume/Снимок экрана.png'),
+            'resume/snimok-ekrana.png',
+        )
+        self.assertEqual(
+            storage.get_available_name('posts/Отчет.pdf'),
+            'posts/otchet.pdf',
+        )
+        # вложенные каталоги тоже
+        self.assertEqual(storage.get_available_name('a/b/Привет.png'), 'a/b/privet.png')
+
+
+class FileCleanupTests(TestCase):
+    """Подчистка файлов: при замене — старый с диска, при удалении записи — её файл."""
+
+    def _make_cover(self, name='cover.png'):
+        return SimpleUploadedFile(name, _png_bytes(), content_type='image/png')
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_new_post_creation_does_not_trigger_old_file_cleanup(self):
+        # создание с нуля не должно падать на Post.objects.get(pk=None)
+        post = Post.objects.create(
+            title='Новый', category=self._cat(), cover_image=self._make_cover(),
+            status='published', published_at=date(2026, 6, 1),
+        )
+        self.assertIsNotNone(post.pk)
+        self.assertTrue(post.cover_image)
+
+    def _cat(self):
+        from .models import Category
+        return Category.objects.get_or_create(name='Код')[0]
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_replacing_photo_cleans_old_file(self):
+        post = Post.objects.create(
+            title='Тест замены', category=self._cat(), cover_image=self._make_cover('old1.png'),
+            status='published', published_at=date(2026, 6, 2),
+        )
+        old_name = post.cover_image.name
+        self.assertTrue(post.cover_image.storage.exists(old_name))
+
+        # заменяем файл
+        post.cover_image = self._make_cover('new1.png')
+        post.save()
+
+        self.assertFalse(post.cover_image.storage.exists(old_name))  # старый удалён
+        self.assertTrue(post.cover_image.storage.exists(post.cover_image.name))
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_deleting_post_cleans_cover(self):
+        post = Post.objects.create(
+            title='Тест удаления', category=self._cat(), cover_image=self._make_cover('del1.png'),
+            status='published', published_at=date(2026, 6, 3),
+        )
+        name = post.cover_image.name
+        self.assertTrue(post.cover_image.storage.exists(name))
+        post.delete()
+        self.assertFalse(post.cover_image.storage.exists(name))  # файл удалён с диска
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_delete_without_cover_does_not_crash(self):
+        post = Post.objects.create(
+            title='Без обложки', category=self._cat(),
+            status='published', published_at=date(2026, 6, 4),
+        )
+        self.assertIsNone(post.cover_image.name)  # у ProcessedImageField нет файла -> name пустой
+        post.delete()  # не должно падать на пустом cover_image
+        self.assertFalse(Post.objects.filter(pk=post.pk).exists())
+
+    def test_signal_connected_exactly_once(self):
+        # dispatch_uid гарантирует: даже при повторных ready() cleanup-ресивер один
+        from django.db.models.signals import post_delete
+        receivers = post_delete._live_receivers(Post)
+        cleanup = [r for r in receivers if 'cleanup_file_on_delete' in str(r)]
+        self.assertEqual(len(cleanup), 1)

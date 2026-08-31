@@ -132,7 +132,12 @@ class Post(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
     excerpt = models.CharField(max_length=250, blank=True, help_text='Краткое описание для карточки в списке')
-    content = CKEditor5Field('Текст поста', config_name='default')
+    content = CKEditor5Field(
+        'Текст поста',
+        config_name='default',
+        help_text='Картинки, вставленные через редактор, не отслеживаются автоматически. '
+                  'Проверяйте вручную перед удалением файлов из медиа.',
+    )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='posts', verbose_name='Категория',
@@ -158,6 +163,10 @@ class Post(models.Model):
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts', verbose_name='Теги')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+    # счётчики событий поиска работы, привязанные к дате поста
+    applications_count = models.PositiveIntegerField(default=0, verbose_name='Откликов отправлено')
+    interviews_count = models.PositiveIntegerField(default=0, verbose_name='Собеседований')
+    offers_count = models.PositiveIntegerField(default=0, verbose_name='Офферов')
     views = models.PositiveIntegerField(default=0)
     published_at = models.DateField(blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -169,6 +178,11 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def has_job_events(self) -> bool:
+        """Хоть одно ненулевое событие поиска работы на этом посте."""
+        return bool(self.applications_count or self.interviews_count or self.offers_count)
 
     def get_absolute_url(self):
         return reverse('post_detail', args=[self.slug])

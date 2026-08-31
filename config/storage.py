@@ -28,17 +28,16 @@ class MediaFileSystemStorage(FileSystemStorage):
     """FileSystemStorage с транслитерацией имени файла при сохранении."""
 
     def get_valid_name(self, name: str) -> str:
-        # разбиваем на базовое имя и расширение, транслит применяем только к базовому
-        base = name
-        ext = ''
-        if '.' in name:
-            base, ext = os.path.splitext(name)
+        # разделяем каталог (upload_to префикс) и само имя файла, транслит — только к имени
+        base, filename = os.path.split(name)
+        fname, ext = os.path.splitext(filename)
 
-        transliterated = _translit_text(base)
+        transliterated = _translit_text(fname)
         slug = slugify(transliterated) or 'file'
-        # get_valid_filename уже убирает небезопасные символы и пустые имена
         valid = get_valid_filename(f'{slug}{ext}')
-        return super().get_valid_name(valid)
+        # получается e.g. "resume/snimok-ekrana.png" (каталог сохраняем)
+        valid = super().get_valid_name(valid)
+        return f'{base}/{valid}' if base else valid
 
     def get_available_name(self, name: str, max_length: int | None = None) -> str:
         # get_valid_name вызывается не всегда (например, через get_available_name),

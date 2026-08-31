@@ -321,6 +321,78 @@ body {
 .timeline-title:hover { color: var(--accent); }
 .timeline-excerpt { color: var(--text-muted); font-size: 0.88rem; margin: 8px 0 0; }
 
+/* строка: заголовок слева, дата + чипы справа, карточка растёт по высоте */
+/* статус профиля над статистикой на таймлайне «Пути» */
+.path-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+}
+.path-status i {
+  font-size: 0.45rem;
+  color: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+/* события поиска работы на таймлайне: заголовок слева, дата и чипы справа */
+.timeline-title-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;   /* заголовок по центру правой колонки (дата+чипы) */
+}
+.timeline-title-row .timeline-title { font-size: 1.02rem; }
+/* левая колонка: заголовок и под ним excerpt */
+.timeline-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.timeline-main .timeline-excerpt { margin: 0; font-size: 0.85rem; }
+/* правая колонка: дата сверху, чипы под ней, прижаты к правому краю */
+.timeline-side {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;   /* дата и чипы по правому краю */
+  gap: 0;                  /* без пустого зазора под датой (gap задают чипы внутри себя) */
+  text-align: right;
+}
+.timeline-side .timeline-date {
+  color: var(--accent);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;   /* небольшой отступ подчёркивания от текста */
+}
+.timeline-job-events {
+  display: inline-flex;
+  flex-direction: column;      /* чипы друг под другом */
+  align-items: flex-end;       /* каждый бейдж по правому краю */
+  justify-content: flex-start;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #4fd1a5; /* цвет как у даты */
+}
+.t-job { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: #4fd1a5; }
+.t-job i { color: #4fd1a5; }
+
+/* блок «В этот день» под постом */
+.job-event-day {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 10px;
+  padding: 12px 16px; margin: 1.2rem 0;
+  color: var(--text-muted); font-size: 0.85rem;
+}
+.job-event-day i { color: var(--accent); }
+.job-event-day strong { color: var(--text); }
+
 /* ссылка на связанный проект в посте */
 .project-link {
   display: inline-flex;

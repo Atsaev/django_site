@@ -1,11 +1,13 @@
+from django.db import models
 from django.db.models import Count, F, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from portfolio.models import Project
+from resume.models import Profile
 
-from .models import REACTIONS_EMOJI, Category, Challenge, JobSearchStats, Post, PostReaction
+from .models import REACTIONS_EMOJI, Category, Challenge, Post, PostReaction
 from .toc import build_toc
 
 
@@ -34,7 +36,6 @@ def post_list(request, category_slug=None):
         'can_timeline': can_timeline,
         'query': query,
         'active_challenge': Challenge.objects.filter(is_active=True).first(),
-        'job_stats': _job_stats(),
     }
     # htmx-запрос: отдаём только фрагмент ленты (без обёртки страницы)
     if request.headers.get('HX-Request'):
@@ -43,15 +44,7 @@ def post_list(request, category_slug=None):
 
 
 def category_timeline(request, category_slug):
-    """Хронологический таймлайн любой рубрики: от ранних постов к новым.
-
-    Правило сортировки: строго по дате публикации (published_at) по
-    возрастанию — это хронология событий, а не порядок написания,
-    поэтому бэкдейт даты осознанно переставляет пост в истории.
-    При равных датах порядок стабилизирует created_at.
-    Используется и для «Пути» (/blog/path/), и для любой другой рубрики
-    (/blog/timeline/<slug>/): разбор фреймворка, дневник и т.д.
-    """
+    """Хронологический таймлайн любой рубрики: от ранних постов к новым."""
     category = get_object_or_404(Category, slug=category_slug)
     posts = (
         Post.objects.filter(status='published', category=category)
@@ -59,19 +52,37 @@ def category_timeline(request, category_slug):
         .prefetch_related('tags')
         .order_by('published_at', 'created_at')
     )
+    # Статистика поиска работы — только на таймлайне рубрики «Путь»
+    job_stats = _job_stats() if category.slug == 'put' else None
+    employment_status = None
+    if category.slug == 'put':
+        _profile = Profile.objects.filter(pk=1).first()
+        if _profile:
+            employment_status = _profile.get_employment_status_display()
     return render(request, 'blog/category_timeline.html', {
         'category': category,
         'posts': posts,
         'categories': Category.objects.all(),
+        'job_stats': job_stats,
+        'employment_status': employment_status,
     })
 
 
 def _job_stats():
-    """Статистика поиска работы — только если есть хоть одно ненулевое значение."""
-    stats = JobSearchStats.objects.filter(pk=1).first()
-    if not stats or not (stats.applications or stats.interviews or stats.offers):
+    """Сводка по событиям поиска работы: сумма по всем постам."""
+    agg = Post.objects.filter(status='published').aggregate(
+        applications=models.Sum('applications_count'),
+        interviews=models.Sum('interviews_count'),
+        offers=models.Sum('offers_count'),
+    )
+    stats = {
+        'applications': agg['applications'] or 0,
+        'interviews': agg['interviews'] or 0,
+        'offers': agg['offers'] or 0,
+    }
+    if not (stats['applications'] or stats['interviews'] or stats['offers']):
         return None
-    return stats
+    return type('JobStats', (), stats)()
 
 
 def challenge_detail(request, slug):

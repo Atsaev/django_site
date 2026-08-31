@@ -11,14 +11,42 @@
   <p class="text-muted mb-5">Хронологический вид рубрики «{{ category.name }}»: от первого поста до сегодняшнего дня.</p>
   {% endif %}
 
+  {% if employment_status %}
+  <div class="path-status mono mb-3">
+    <i class="fa-solid fa-circle" aria-hidden="true"></i>
+    {{ employment_status }}
+  </div>
+  {% endif %}
+
+  {% if job_stats %}
+  <div class="stats-chips d-flex gap-2 flex-wrap mb-4">
+    <span class="stat-chip" title="Откликов отправлено"><i class="fa-solid fa-paper-plane"></i> Отклики: <strong>{{ job_stats.applications }}</strong></span>
+    <span class="stat-chip" title="Собеседований"><i class="fa-solid fa-users"></i> Собеседования: <strong>{{ job_stats.interviews }}</strong></span>
+    <span class="stat-chip" title="Офферов"><i class="fa-solid fa-trophy"></i> Офферы: <strong>{{ job_stats.offers }}</strong></span>
+  </div>
+  {% endif %}
+
   <div class="timeline">
     {% for post in posts %}
     <div class="timeline-item">
       <div class="timeline-dot"></div>
       <div class="timeline-card">
-        <div class="timeline-date mono">{{ post.published_at|date:"j E Y" }}</div>
-        <a href="{% url 'post_detail' post.slug %}" class="timeline-title">{{ post.title }}</a>
-        {% if post.excerpt %}<p class="timeline-excerpt">{{ post.excerpt }}</p>{% endif %}
+        <div class="timeline-title-row">
+          <div class="timeline-main">
+            <a href="{% url 'post_detail' post.slug %}" class="timeline-title">{{ post.title }}</a>
+            {% if post.excerpt %}<p class="timeline-excerpt">{{ post.excerpt }}</p>{% endif %}
+          </div>
+          <div class="timeline-side mono">
+            <div class="timeline-date">{{ post.published_at|date:"j E Y" }}</div>
+            {% if post.has_job_events %}
+            <span class="timeline-job-events">
+              {% if post.applications_count %}<span class="t-job" title="Отклики"><i class="fa-solid fa-paper-plane"></i> откликов: {{ post.applications_count }}</span>{% endif %}
+              {% if post.interviews_count %}<span class="t-job" title="Собеседования"><i class="fa-solid fa-users"></i> собесов: {{ post.interviews_count }}</span>{% endif %}
+              {% if post.offers_count %}<span class="t-job" title="Офферы"><i class="fa-solid fa-trophy"></i> офферов: {{ post.offers_count }}</span>{% endif %}
+            </span>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
     {% empty %}

@@ -76,6 +76,15 @@
 
   {% include "blog/_reactions.html" %}
 
+  {% if post.has_job_events %}
+  <div class="job-event-day mono">
+    <i class="fa-solid fa-briefcase"></i> В этот день:
+    {% if post.applications_count %}отправлено откликов: {{ post.applications_count }}{% if post.interviews_count or post.offers_count %} · {% endif %}{% endif %}
+    {% if post.interviews_count %}собеседований: {{ post.interviews_count }}{% if post.offers_count %} · {% endif %}{% endif %}
+    {% if post.offers_count %}оффер: {{ post.offers_count }}{% endif %}
+  </div>
+  {% endif %}
+
   {% if related %}
   <hr class="post-hr">
   <h2 class="related-title">// читайте также</h2>

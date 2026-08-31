@@ -54,14 +54,6 @@
       </div>
       {% endif %}
 
-      {% if job_stats %}
-      <div class="stats-chips d-flex gap-2 flex-wrap mb-4">
-        <span class="stat-chip" title="Откликов отправлено"><i class="fa-solid fa-paper-plane"></i> Отклики: <strong>{{ job_stats.applications }}</strong></span>
-        <span class="stat-chip" title="Собеседований"><i class="fa-solid fa-users"></i> Собеседования: <strong>{{ job_stats.interviews }}</strong></span>
-        <span class="stat-chip" title="Офферов"><i class="fa-solid fa-trophy"></i> Офферы: <strong>{{ job_stats.offers }}</strong></span>
-      </div>
-      {% endif %}
-
       <div id="feed">{% include "blog/_post_list.html" %}</div>
     </div>
   </div>

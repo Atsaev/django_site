@@ -17,7 +17,12 @@ from .models import (
 
 
 class PostAdminForm(forms.ModelForm):
-    """Форма поста + поля накрутки реакций (в модель не сохраняются)."""
+    """Форма поста + поля накрутки реакций (в модель не сохраняются).
+
+    day_number физически исключён из формы (exclude) — он вычисляется
+    в Post.save() от created_at и даты старта челленджа. Вычисленное значение
+    показывается через readonly-поле day_number_display.
+    """
     inflate_reactions = forms.BooleanField(
         required=False,
         label='Накрутить реакции',
@@ -32,6 +37,10 @@ class PostAdminForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = '__all__'
+        # day_number не должен попасть в POST-данные формы вообще —
+        # вычисляется только в save(); иначе ручное значение могло бы
+        # просочиться в обход disabled.
+        exclude = ('day_number',)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,6 +94,12 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = ("title", "tags__name")
     filter_horizontal = ("tags",)
     prepopulated_fields: ClassVar[dict] = {"slug": ("title",)}
+    readonly_fields = ("day_number_display",)
+
+    def day_number_display(self, obj):
+        return obj.day_number if obj.day_number else "—"
+
+    day_number_display.short_description = "День челленджа (вычисляется автоматически)"
 
     @admin.action(description='Сбросить реакции у выбранных постов')
     def reset_reactions(self, request, queryset):

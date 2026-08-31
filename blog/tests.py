@@ -1,16 +1,18 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from io import BytesIO
 from tempfile import mkdtemp
 from types import SimpleNamespace
 
 from django.contrib import admin
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.db import connection
 from django.test import RequestFactory, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
 from config.storage import MediaFileSystemStorage
@@ -30,6 +32,11 @@ from .models import (
 from .translit import translit_slug
 
 
+def _aware(d: date) -> datetime:
+    """DateTimeField хранит aware datetime в UTC — из даты делаем aware по TIME_ZONE."""
+    return timezone.make_aware(datetime.combine(d, datetime.min.time()))
+
+
 def _png_bytes() -> bytes:
     buf = BytesIO()
     Image.new('RGB', (1200, 630), 'red').save(buf, 'PNG')
@@ -44,7 +51,9 @@ class ChallengeModelTests(TestCase):
             total_days=30,
         )
         self.assertEqual(challenge.current_day, 10)
-        self.assertEqual(challenge.progress_percent, 33)
+        # постов нет — прогресс 0 даже несмотря на прошедшие календарные дни
+        self.assertEqual(challenge.progress_percent, 0)
+        self.assertEqual(challenge.done_count, 0)
 
     def test_current_day_capped_and_slug_auto(self):
         challenge = Challenge.objects.create(
@@ -52,8 +61,11 @@ class ChallengeModelTests(TestCase):
             start_date=date.today() - timedelta(days=100),
             total_days=30,
         )
-        self.assertEqual(challenge.current_day, 30)
-        self.assertEqual(challenge.progress_percent, 100)
+        # период закончился давно, но прогресс опирается на факт постов
+        self.assertEqual(challenge.current_day, 101)
+        self.assertTrue(challenge.finished())
+        self.assertEqual(challenge.progress_percent, 0)
+        self.assertEqual(challenge.status(), 'missed')
         self.assertEqual(challenge.slug, '30-dney-posle-kursa')
 
     def test_days_left(self):
@@ -61,6 +73,45 @@ class ChallengeModelTests(TestCase):
             title='30 дней', start_date=date.today() - timedelta(days=9), total_days=30,
         )
         self.assertEqual(challenge.days_left(), 20)
+
+    def test_days_grid_states(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=2), total_days=5,
+        )
+        p = Post.objects.create(
+            title='День 2', challenge=challenge, status='published',
+        )
+        # в обход save: день 2 закрыт постом (save посчитал бы текущий день)
+        Post.objects.filter(pk=p.pk).update(day_number=2)
+        grid = {d['n']: d['state'] for d in challenge.days_grid()}
+        # сегодня — день 3; день 2 закрыт; день 1 пропущен (миновал без поста); 4 и 5 впереди
+        self.assertEqual(grid[1], 'missed')
+        self.assertEqual(grid[2], 'done')
+        self.assertEqual(grid[3], 'today')
+        self.assertEqual(grid[4], 'future')
+        self.assertEqual(grid[5], 'future')
+        self.assertEqual(len(grid), 5)
+
+    def test_status_active_then_done(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=1), total_days=2,
+        )
+        self.assertEqual(challenge.status(), 'active')
+        a = Post.objects.create(title='1', challenge=challenge, status='published')
+        b = Post.objects.create(title='2', challenge=challenge, status='published')
+        # в обход save: посты закрывают дни 1 и 2
+        Post.objects.filter(pk=a.pk).update(day_number=1)
+        Post.objects.filter(pk=b.pk).update(day_number=2)
+        # уже наступил день 3 (период из 2 дней закончился) и оба закрыты
+        self.assertEqual(challenge.status(), 'done')
+
+    def test_status_missed_when_not_all_days_written(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=3), total_days=2,
+        )
+        # день 1 пропущен, день 2 закрыт — итог провален
+        Post.objects.create(title='2', challenge=challenge, day_number=2, status='published')
+        self.assertEqual(challenge.status(), 'missed')
 
     def test_creating_active_deactivates_others(self):
         first = Challenge.objects.create(
@@ -73,6 +124,37 @@ class ChallengeModelTests(TestCase):
         self.assertFalse(first.is_active)
         self.assertTrue(second.is_active)
         self.assertEqual(Challenge.objects.filter(is_active=True).count(), 1)
+
+    def test_cannot_shrink_total_days_below_written_posts(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=2), total_days=30,
+        )
+        p = Post.objects.create(
+            title='День 30', challenge=challenge, status='published',
+        )
+        # в обход save: пост закрывает день 30
+        Post.objects.filter(pk=p.pk).update(day_number=30)
+        # уменьшить до 20 нельзя — есть пост с днём 30
+        challenge.total_days = 20
+        with self.assertRaises(ValidationError):
+            challenge.clean()
+        # увеличить до 40 — допустимо
+        challenge.total_days = 40
+        challenge.clean()  # не должно бросить
+
+    def test_manual_day_number_ignored_on_save(self):
+        challenge = Challenge.objects.create(
+            title='30 дней', start_date=date.today() - timedelta(days=2), total_days=30,
+        )
+        # «День 32» игнорируется: save() пересчитает день от created_at
+        # (первый день челленджа — вчера, значит пост сегодня получит день 3)
+        post = Post.objects.create(
+            title='Вне срока', challenge=challenge, day_number=32, status='published',
+        )
+        self.assertEqual(post.day_number, 3)
+        # ручной ввод больше не может создать день, выходящий за сроки челленджа
+        challenge.total_days = 30
+        challenge.clean()  # не должно бросить
 
     def test_reactivating_switches_active(self):
         first = Challenge.objects.create(
@@ -277,32 +359,47 @@ class BlogViewsTests(TestCase):
         self.assertNotContains(response, 'Отклики:')
 
     def test_day_number_auto_assigned(self):
+        start = date.today() - timedelta(days=1)
         challenge = Challenge.objects.create(
-            title='30 дней', start_date=date.today() - timedelta(days=1),
+            title='30 дней', start_date=start,
         )
+        # оба поста созданы в один и тот же календарный день — им ставится
+        # один и тот же day_number (= 2), посчитанный от created_at по дате старта.
         p1 = Post.objects.create(
             title='Пост 1', challenge=challenge, status='published',
-            published_at=date(2026, 5, 1),
         )
         p2 = Post.objects.create(
             title='Пост 2', challenge=challenge, status='published',
-            published_at=date(2026, 5, 2),
         )
-        self.assertEqual(p1.day_number, 1)
+        self.assertEqual(p1.day_number, 2)
         self.assertEqual(p2.day_number, 2)
+
+    def test_day_number_clamped_to_total_days_on_create(self):
+        start = date.today() - timedelta(days=100)
+        challenge = Challenge.objects.create(
+            title='100 дней', start_date=start, total_days=30,
+        )
+        # постов с day_number 101 нет — день не должен выйти за рамки челленджа
+        p = Post.objects.create(title='Пост', challenge=challenge, status='published')
+        self.assertEqual(p.day_number, 30)
 
     def test_challenge_detail_page_orders_by_day(self):
         challenge = Challenge.objects.create(
             title='30 дней', start_date=date.today() - timedelta(days=2),
         )
-        Post.objects.create(
-            title='День второй', challenge=challenge, day_number=2,
-            status='published', published_at=date(2026, 5, 2),
+        first = Post.objects.create(
+            title='День первый', challenge=challenge, status='published',
+            published_at=date(2026, 5, 1),
         )
-        Post.objects.create(
-            title='День первый', challenge=challenge, day_number=1,
-            status='published', published_at=date(2026, 5, 1),
+        second = Post.objects.create(
+            title='День второй', challenge=challenge, status='published',
+            published_at=date(2026, 5, 2),
         )
+        # в обход save: задаём дни 1 и 2 явно (save пересчитал бы по created_at)
+        Post.objects.filter(pk=first.pk).update(
+            created_at=_aware(challenge.start_date - timedelta(days=1)), day_number=1)
+        Post.objects.filter(pk=second.pk).update(
+            created_at=_aware(challenge.start_date), day_number=2)
         response = self.client.get(reverse('challenge_detail', args=[challenge.slug]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'День 3 из 30')
@@ -313,14 +410,19 @@ class BlogViewsTests(TestCase):
         challenge = Challenge.objects.create(
             title='30 дней', start_date=date.today() - timedelta(days=2),
         )
-        Post.objects.create(
-            title='День 6 (опубликован раньше)', challenge=challenge, day_number=6,
-            status='published', published_at=date(2026, 5, 1),
+        # создаём посты так, чтобы created_at попал в дни 5 и 6 челленджа
+        day6 = Post.objects.create(
+            title='День 6 (опубликован раньше)', challenge=challenge, status='published',
+            published_at=date(2026, 5, 1),
         )
-        Post.objects.create(
-            title='День 5 (опубликован позже)', challenge=challenge, day_number=5,
-            status='published', published_at=date(2026, 5, 9),
+        day5 = Post.objects.create(
+            title='День 5 (опубликован позже)', challenge=challenge, status='published',
+            published_at=date(2026, 5, 9),
         )
+        Post.objects.filter(pk=day6.pk).update(
+            created_at=_aware(challenge.start_date + timedelta(days=5)), day_number=6)
+        Post.objects.filter(pk=day5.pk).update(
+            created_at=_aware(challenge.start_date + timedelta(days=4)), day_number=5)
         response = self.client.get(reverse('challenge_detail', args=[challenge.slug]))
         posts = list(response.context['posts'])
         # даты публикации противоречат номерам — порядок всё равно строго по дням
@@ -331,16 +433,16 @@ class BlogViewsTests(TestCase):
             title='30 дней', start_date=date.today() - timedelta(days=2),
         )
         a = Post.objects.create(
-            title='День 5 (первый)', challenge=challenge, day_number=5,
-            status='published', published_at=date(2026, 5, 1),
+            title='День 5 (первый)', challenge=challenge, status='published',
+            published_at=date(2026, 5, 1),
         )
         b = Post.objects.create(
-            title='День 5 (второй)', challenge=challenge, day_number=5,
-            status='published', published_at=date(2026, 5, 1),
+            title='День 5 (второй)', challenge=challenge, status='published',
+            published_at=date(2026, 5, 1),
         )
         response = self.client.get(reverse('challenge_detail', args=[challenge.slug]))
         posts = list(response.context['posts'])
-        # равные day_number — порядок детерминирован по created_at
+        # посты созданы в один день (равные day_number) — порядок по created_at
         self.assertEqual([p.pk for p in posts], [a.pk, b.pk])
 
     def test_post_detail_shows_challenge_progress(self):
@@ -348,10 +450,10 @@ class BlogViewsTests(TestCase):
             title='30 дней', start_date=date.today() - timedelta(days=4), total_days=30,
         )
         self.post.challenge = challenge
-        self.post.save()  # day_number проставится автоматически
+        self.post.save()  # day_number проставится автоматически от created_at
         response = self.client.get(reverse('post_detail', args=[self.post.slug]))
         self.assertContains(response, 'challenge-progress')
-        self.assertContains(response, 'День 1 из 30')
+        self.assertContains(response, 'День 5 из 30')
         self.assertContains(response, challenge.slug)
 
     def test_post_detail_links_project(self):

@@ -39,7 +39,7 @@
           <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
             <a href="{% url 'challenge_detail' active_challenge.slug %}" class="challenge-link">{{ active_challenge.title }}</a>
           </span>
-          <span class="challenge-day mono">День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}</span>
+          <span class="challenge-day mono">{% if active_challenge.finished %}закрыто {{ active_challenge.done_count }}/{{ active_challenge.total_days }}{% else %}День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}{% endif %}</span>
         </div>
         <div class="progress" role="progressbar"
              aria-label="{{ active_challenge.title }}"
@@ -47,8 +47,8 @@
              aria-valuemin="0" aria-valuemax="100">
           <div class="progress-bar" style="width: {{ active_challenge.progress_percent }}%;"></div>
         </div>
-        {% if active_challenge.current_day >= active_challenge.total_days %}
-        <div class="challenge-done mono">челлендж завершён 🎉</div>
+        {% if active_challenge.finished %}
+        <div class="challenge-status mono {{ active_challenge.status }}">{% if active_challenge.status == 'done' %}челлендж завершён 🎉{% else %}челлендж провален 💔{% endif %}</div>
         {% endif %}
         <div class="challenge-more"><a href="{% url 'challenge_detail' active_challenge.slug %}">история целиком →</a></div>
       </div>

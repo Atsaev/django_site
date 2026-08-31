@@ -42,13 +42,18 @@
       <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
         <a href="{% url 'challenge_detail' active_challenge.slug %}" class="challenge-link">{{ active_challenge.title }}</a>
       </span>
-      <span class="challenge-day mono">День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}</span>
+      <span class="challenge-day mono">{% if active_challenge.finished %}закрыто {{ active_challenge.done_count }}/{{ active_challenge.total_days }}{% else %}День {{ active_challenge.current_day }} из {{ active_challenge.total_days }}{% endif %}</span>
     </div>
     <div class="progress" role="progressbar"
          aria-label="{{ active_challenge.title }}"
          aria-valuenow="{{ active_challenge.progress_percent }}"
          aria-valuemin="0" aria-valuemax="100">
       <div class="progress-bar" style="width: {{ active_challenge.progress_percent }}%;"></div>
+    </div>
+    <div class="challenge-grid mt-3">
+      {% for day in active_challenge.days_grid %}
+      <span class="challenge-cell {{ day.state }}" title="День {{ day.n }}{% if day.state == 'done' %} — пост есть{% elif day.state == 'missed' %} — пропущен{% elif day.state == 'today' %} — сегодня{% endif %}"></span>
+      {% endfor %}
     </div>
   </div>
 </section>

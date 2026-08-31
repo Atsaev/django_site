@@ -2,8 +2,10 @@ import random
 import re
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django_ckeditor_5.fields import CKEditor5Field
 from imagekit.models import ProcessedImageField
 from imagekit.processors import ResizeToFill
@@ -48,18 +50,95 @@ class Challenge(models.Model):
             Challenge.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
 
+    def clean(self):
+        """Нельзя уменьшать челлендж ниже уже написанных дней: иначе посты
+        выпадут из сетки дней (напр. день 32 при total_days 30)."""
+        super().clean()
+        if self.pk:
+            max_written = (
+                self.posts.filter(day_number__isnull=False)
+                .aggregate(models.Max('day_number'))['day_number__max']
+            )
+            if max_written and self.total_days < max_written:
+                raise ValidationError({
+                    'total_days': (
+                        f'Меньше нельзя: в челлендже уже написан пост с днём {max_written}. '
+                        f'Максимум дней должен быть не меньше {max_written}.'
+                    )
+                })
+
+    def _today(self) -> date:
+        """Сегодня по локальной таймзоне (Europe/Moscow)."""
+        return timezone.localtime().date()
+
     @property
     def current_day(self) -> int:
-        delta = (date.today() - self.start_date).days + 1
-        return max(0, min(delta, self.total_days))
+        """Календарный день челленджа сегодня (1-индекс от start_date).
+        Может превышать total_days, если прошло больше дней, чем в челлендже."""
+        return (self._today() - self.start_date).days + 1
+
+    def finished(self) -> bool:
+        """Период челленджа закончился (наступил день после total_days)."""
+        return self.current_day > self.total_days
 
     @property
     def progress_percent(self) -> int:
-        return round(self.current_day / self.total_days * 100)
+        """Процент выполненных дней (по факту написанных постов), а не по календарю."""
+        if self.total_days <= 0:
+            return 0
+        return round(self.done_count / self.total_days * 100)
 
     def days_left(self) -> int:
-        """Сколько дней осталось до конца челленджа."""
+        """Сколько календарных дней осталось до конца челленджа."""
         return max(0, self.total_days - self.current_day)
+
+    def _done_numbers(self) -> set:
+        """Множество day_number, для которых есть опубликованный пост."""
+        return set(
+            self.posts.filter(status='published', day_number__isnull=False)
+            .values_list('day_number', flat=True)
+        )
+
+    @property
+    def done_count(self) -> int:
+        return len(self._done_numbers())
+
+    def days_grid(self):
+        """Массив состояния каждого дня челленджа (по календарю Москвы).
+
+        state для дня N:
+        - 'done'  — N наступил и есть опубликованный пост с day_number == N
+        - 'today' — N == current_day (сегодня, ещё можно написать)
+        - 'missed'— N миновал, но поста в этот календарный день нет
+        - 'future'— N ещё не наступил
+        """
+        done = self._done_numbers()
+        today_n = self.current_day
+        return [
+            {
+                'n': n,
+                'state': (
+                    'done' if n in done
+                    else 'today' if n == today_n
+                    else 'missed' if n < today_n
+                    else 'future'
+                ),
+            }
+            for n in range(1, self.total_days + 1)
+        ]
+
+    def status(self) -> str:
+        """Вердикт: 'active' — идёт, 'done' — завершён, 'missed' — провален.
+
+        done достигается и досрочно, если все дни уже закрыты постами;
+        missed — если период закончился, но закрыты не все дни.
+        """
+        required = set(range(1, self.total_days + 1))
+        if self._done_numbers() >= required:
+            return 'done'
+        if not self.finished():
+            return 'active'
+        return 'missed'
 
 
 class JobSearchStats(models.Model):
@@ -190,11 +269,18 @@ class Post(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = translit_slug(self.title)
-        # автопростановка дня: следующий после последнего в этом челлендже
-        if self.challenge_id and self.day_number is None:
-            last = self.challenge.posts.aggregate(models.Max('day_number'))
-            self.day_number = (last['day_number__max'] or 0) + 1
+        # day_number — календарный день от старта челленджа по дате создания (не счётчик).
+        if self.challenge_id:
+            created = timezone.localtime(self.created_at) if self.created_at else timezone.localtime()
+            day = (created.date() - self.challenge.start_date).days + 1
+            self.day_number = max(1, min(day, self.challenge.total_days))
+        else:
+            self.day_number = None
         super().save(*args, **kwargs)
+
+    def clean(self):
+        """День челленджа не вводится вручную — он считается в save() от created_at."""
+        super().clean()
 
     _IMG_SRC_RE = re.compile(r'<img[^>]+src="([^"]+)"')
 

@@ -47,7 +47,7 @@
       <span class="challenge-label mono"><i class="fa-solid fa-fire"></i>
         <a href="{% url 'challenge_detail' post.challenge.slug %}" class="challenge-link">{{ post.challenge.title }}</a>
       </span>
-      <span class="challenge-day mono">День {{ post.day_number|default:post.challenge.current_day }} из {{ post.challenge.total_days }}</span>
+      <span class="challenge-day mono">{% if post.challenge.finished %}закрыто {{ post.challenge.done_count }}/{{ post.challenge.total_days }}{% else %}День {{ post.day_number|default:post.challenge.current_day }} из {{ post.challenge.total_days }}{% endif %}</span>
     </div>
     <div class="progress" role="progressbar"
          aria-label="{{ post.challenge.title }}"

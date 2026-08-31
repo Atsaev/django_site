@@ -9,8 +9,8 @@
 
   <div class="challenge-card my-4">
     <div class="d-flex justify-content-between align-items-center mb-2 gap-3 flex-wrap">
-      <span class="challenge-label mono"><i class="fa-solid fa-fire"></i> День {{ challenge.current_day }} из {{ challenge.total_days }}</span>
-      <span class="challenge-day mono">{{ challenge.progress_percent }}%{% if challenge.days_left %} · осталось {{ challenge.days_left }} дн.{% endif %}</span>
+      <span class="challenge-label mono"><i class="fa-solid fa-fire"></i> День {{ challenge.current_day }}{% if challenge.current_day > challenge.total_days %} из {{ challenge.total_days }} (завершён){% else %} из {{ challenge.total_days }}{% endif %}</span>
+      <span class="challenge-day mono">закрыто {{ challenge.done_count }}/{{ challenge.total_days }}</span>
     </div>
     <div class="progress" role="progressbar"
          aria-label="{{ challenge.title }}"
@@ -18,9 +18,18 @@
          aria-valuemin="0" aria-valuemax="100">
       <div class="progress-bar" style="width: {{ challenge.progress_percent }}%;"></div>
     </div>
-    {% if challenge.current_day >= challenge.total_days %}
-    <div class="challenge-done mono">челлендж завершён 🎉</div>
+
+    {% if challenge.status != 'active' %}
+    <div class="challenge-status mono {{ challenge.status }}">
+      {% if challenge.status == 'done' %}челлендж завершён 🎉 — все {{ challenge.total_days }} дней закрыты{% else %}челлендж провален 💔 — закрыто {{ challenge.done_count }} из {{ challenge.total_days }} дней{% endif %}
+    </div>
     {% endif %}
+
+    <div class="challenge-grid mt-3">
+      {% for day in challenge.days_grid %}
+      <span class="challenge-cell {{ day.state }}" title="День {{ day.n }}{% if day.state == 'done' %} — пост есть{% elif day.state == 'missed' %} — пропущен{% elif day.state == 'today' %} — сегодня{% endif %}"></span>
+      {% endfor %}
+    </div>
   </div>
 
   <div class="timeline">

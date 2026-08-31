@@ -273,6 +273,30 @@ body {
   padding: 16px 20px;
 }
 
+/* сетка дней челленджа: квадратики по числу total_days */
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14px, 1fr));
+  gap: 4px;
+}
+.challenge-cell {
+  height: 14px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+.challenge-cell.done { background: var(--accent); border-color: var(--accent); }
+.challenge-cell.missed { background: #e0533d; border-color: #e0533d; }
+.challenge-cell.today {
+  background: transparent;
+  border: 2px solid var(--accent);
+}
+/* статус-вердикт челленджа */
+.challenge-status { font-size: 0.78rem; margin-top: 8px; }
+.challenge-status.done { color: var(--accent); }
+.challenge-status.missed { color: #e0533d; }
+
 /* статистика поиска работы */
 .stat-chip {
   display: inline-flex;

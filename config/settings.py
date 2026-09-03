@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'blog',
     'portfolio',
     'resume',
+    'flashcards',
 ]
 
 if DEBUG:

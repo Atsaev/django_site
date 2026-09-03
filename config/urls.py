@@ -35,6 +35,7 @@ urlpatterns = [
     path("", include("portfolio.urls")),
     path("blog/", include("blog.urls")),
     path("resume/", include("resume.urls")),
+    path("flashcards/", include("flashcards.urls")),
 ]
 
 if settings.DEBUG:

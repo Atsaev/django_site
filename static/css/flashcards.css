@@ -1,0 +1,188 @@
+/* Флешкарты: flip-карточка + темы (терминальная тема сайта) */
+
+/* ----- список тем ----- */
+.flashcard-topic-link {
+  text-decoration: none;
+}
+.flashcard-topic {
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.flashcard-topic:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.flashcard-topic .flashcard-topic-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.flashcard-topic .flashcard-topic-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.flashcard-topic .flashcard-count {
+  align-self: flex-start;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* кликабельная плитка выбора темы (label вокруг checkbox) */
+.flashcard-topic-select {
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 0;
+  justify-content: space-between;
+}
+.flashcard-topic-select .topic-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  margin: 0;
+}
+.flashcard-topic-select .flashcard-topic-name {
+  padding-right: 26px;
+}
+.flashcard-topic-select:has(.topic-check:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 12px 24px -14px var(--accent-glow);
+}
+
+/* ----- тренировка ----- */
+.flashcard-stage {
+  perspective: 1600px;
+  margin-bottom: 24px;
+}
+.flashcard {
+  position: relative;
+  width: 100%;
+  height: 340px;                 /* одинаковая высота обеих граней */
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  cursor: pointer;
+}
+.flashcard.is-flipped {
+  transform: rotateY(180deg);
+}
+.flashcard-face {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 26px 30px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+}
+.flashcard-face::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.35;
+  pointer-events: none;
+}
+.flashcard-front { justify-content: center; }
+.flashcard-back {
+  transform: rotateY(180deg);
+  justify-content: flex-start;
+}
+.flashcard-front .flashcard-face-label {
+  color: var(--accent);
+  border: 1px solid var(--border-soft);
+  background: var(--accent-soft);
+  align-self: flex-start;
+}
+.flashcard-back .flashcard-face-label {
+  color: var(--method-get);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-self: flex-start;
+}
+.flashcard-face-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+.flashcard-hint {
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0.8;
+}
+/* переворот плавнее за счёт блика на краю */
+.flashcard.is-flipped .flashcard-face {
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.55),
+              inset 0 0 0 1px var(--border);
+}
+.flashcard-q {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.flashcard-a {
+  color: var(--text);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.flashcard-hint {
+  margin-top: auto;
+  padding-top: 14px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.flashcard-progress {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* карточка в фокусе (доступность) */
+.flashcard:focus-visible {
+  outline: none;
+}
+.flashcard:focus-visible .flashcard-front {
+  box-shadow: 0 0 0 2px var(--accent-glow), 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+}
+
+/* высота карточки на маленьких экранах */
+@media (max-width: 575.98px) {
+  .flashcard { height: 300px; }
+  .flashcard-face { padding: 20px 22px; }
+  .flashcard-q { font-size: 1.1rem; }
+}

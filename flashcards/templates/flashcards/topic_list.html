@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Флешкарты — atsaev-dev.ru{% endblock %}
+
+{% block extra_head %}
+<link href="{% static 'css/flashcards.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <!-- ============ ШАГ 1: выбор тем ============ -->
+      <div id="chooseStep">
+        <div class="section-eyebrow mb-2">
+          <span>// тренировка на флешкартах</span>
+        </div>
+        <h1 class="mb-1 fw-bold">Выбери темы</h1>
+        <p class="text-muted mb-4">
+          Можно тренироваться по одной, нескольким или всем темам сразу.
+          Нажми на карточку — она перевернётся и покажет ответ.
+        </p>
+
+        {% if topics %}
+        <div class="mb-3 d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-mono btn-sm" id="selectAllBtn">Выбрать все</button>
+          <button type="button" class="btn btn-outline-mono btn-sm" id="clearAllBtn">Сбросить</button>
+          <span class="flashcard-progress align-self-center" id="selectedCount"></span>
+        </div>
+
+        <div class="row g-3 topic-picker">
+          {% for topic in topics %}
+          <div class="col-md-6 col-lg-4">
+            <label class="flashcard-topic flashcard-topic-select">
+              <input type="checkbox" value="{{ topic.id }}" class="topic-check">
+              <span class="flashcard-topic-check">
+                <span class="flashcard-topic-name">{{ topic.name }}</span>
+                <span class="flashcard-topic-desc">{{ topic.description }}</span>
+              </span>
+              <span class="flashcard-count">{{ topic.n_cards }}</span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-4">
+          <button type="button" class="btn btn-accent btn-lg" id="startBtn" disabled>
+            Начать тренировку
+          </button>
+        </div>
+        {% else %}
+        <p class="text-muted">
+          Тем пока нет. Добавь темы и карточки через админку
+          <span class="mono">/admin/flashcards/</span>.
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- ============ ШАГ 2: тренировка ============ -->
+      <div id="trainStep" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <button type="button" class="text-muted mono small" id="backToTopics" style="background:none;border:none;">&larr; сменить темы</button>
+          <span class="flashcard-progress" id="trainProgress"></span>
+        </div>
+
+        <div class="flashcard-stage">
+          <div class="flashcard" id="flashcard" tabindex="0" role="button"
+               aria-label="Клик — перевернуть карточку и показать ответ">
+            <div class="flashcard-face flashcard-front">
+              <span class="flashcard-face-label">вопрос</span>
+              <div class="flashcard-q" id="frontText"></div>
+              <div class="flashcard-hint">клик — показать ответ</div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+              <span class="flashcard-face-label">ответ</span>
+              <div class="flashcard-a" id="backText"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2 flashcard-controls">
+          <button class="btn btn-outline-mono" id="nextBtn" style="display:none;">Следующий вопрос →</button>
+        </div>
+
+        <div id="doneBox" class="text-center mt-4" style="display:none;">
+          <h3 class="mono mb-3">Все карточки пройдены 🎉</h3>
+          <button class="btn btn-accent" id="againBtn">Пройти ещё раз</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{{ deck|json_script:"deck-data" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const allCards = JSON.parse(document.getElementById('deck-data').textContent);
+
+  const chooseStep = document.getElementById('chooseStep');
+  const trainStep = document.getElementById('trainStep');
+  const checks = Array.from(document.querySelectorAll('.topic-check'));
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const startBtn = document.getElementById('startBtn');
+  const selectedCountEl = document.getElementById('selectedCount');
+
+  // ---------- выбор тем ----------
+  function updateSelection() {
+    const n = checks.filter(c => c.checked).length;
+    selectedCountEl.textContent = n
+      ? (n === checks.length ? 'все темы — ' + n : 'выбрано тем: ' + n)
+      : '';
+    startBtn.disabled = n === 0;
+  }
+  checks.forEach(c => c.addEventListener('change', updateSelection));
+  selectAllBtn.addEventListener('click', () => {
+    checks.forEach(c => c.checked = true);
+    updateSelection();
+  });
+  clearAllBtn.addEventListener('click', () => {
+    checks.forEach(c => c.checked = false);
+    updateSelection();
+  });
+  updateSelection();
+
+  // ---------- тренировка ----------
+  let queue = [];
+  let index = -1;
+  const cardEl = document.getElementById('flashcard');
+  const front = document.getElementById('frontText');
+  const back = document.getElementById('backText');
+  const trainProgress = document.getElementById('trainProgress');
+  const nextBtn = document.getElementById('nextBtn');
+  const doneBox = document.getElementById('doneBox');
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function showCard() {
+    const cur = queue[index];
+    front.textContent = cur.question;
+    back.textContent = cur.answer;
+    trainProgress.textContent = (index + 1) + ' / ' + queue.length +
+      ' · ' + cur.topic;
+    cardEl.classList.remove('is-flipped');
+    nextBtn.style.display = 'none';
+  }
+
+  function finish() {
+    cardEl.style.display = 'none';
+    nextBtn.style.display = 'none';
+    doneBox.style.display = '';
+  }
+
+  function nextCard() {
+    index += 1;
+    if (index >= queue.length) return finish();
+    if (cardEl.style.display === 'none') cardEl.style.display = '';
+    showCard();
+  }
+
+  startBtn.addEventListener('click', () => {
+    const ids = new Set(checks.filter(c => c.checked).map(c => c.value));
+    queue = shuffle(allCards.filter(c => ids.has(String(c.topic_id))));
+    index = -1;
+    chooseStep.style.display = 'none';
+    trainStep.style.display = '';
+    doneBox.style.display = 'none';
+    cardEl.style.display = '';
+    nextCard();
+  });
+
+  document.getElementById('backToTopics').addEventListener('click', () => {
+    trainStep.style.display = 'none';
+    chooseStep.style.display = '';
+    updateSelection();
+  });
+
+  function reveal() {
+    if (cardEl.classList.contains('is-flipped')) return;
+    cardEl.classList.add('is-flipped');
+    nextBtn.style.display = '';
+  }
+
+  cardEl.addEventListener('click', reveal);
+  cardEl.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); reveal(); }
+  });
+  nextBtn.addEventListener('click', nextCard);
+  document.getElementById('againBtn').addEventListener('click', () => {
+    queue = shuffle(queue);                 // перемешаем эти же карточки снова
+    index = -1;
+    doneBox.style.display = 'none';
+    cardEl.style.display = '';
+    nextCard();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (trainStep.style.display === 'none' || doneBox.style.display !== 'none') return;
+    if (e.key === ' ') { e.preventDefault(); reveal(); }
+    else if (e.key === 'Enter' || e.key === 'ArrowRight') {
+      if (cardEl.classList.contains('is-flipped')) nextCard();
+      else e.preventDefault();
+    }
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="atsaev.dev">
+  <!-- Тёмная скруглённая плитка с тонкой границей (--surface/--border сайта). -->
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#12161d"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="12.5" fill="none" stroke="#242b35" stroke-width="2"/>
+
+  <!-- Мягкое мятное свечение под буквой (отсылка к --accent-glow). -->
+  <ellipse cx="30" cy="45" rx="20" ry="9" fill="#4fd1a5" opacity="0.12"/>
+
+  <!-- Заглавная "А": толстые mono-ноги + перекладина, фирменный мятный акцент. -->
+  <g fill="none" stroke="#4fd1a5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="45,52 31,12 17,52"/>
+    <line x1="23.5" y1="36" x2="38.5" y2="36"/>
+  </g>
+
+  <!-- Акцентная точка (dot из "atsaev.dev"): маленький мятный круг справа снизу. -->
+  <circle cx="50" cy="50" r="4.4" fill="#4fd1a5"/>
+</svg>

@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
@@ -47,13 +49,23 @@ class Profile(models.Model):
 
 
 class Experience(models.Model):
+    """Опыт работы. Период формируется автоматически из start/end дат."""
+
+    _MONTH_ABBR = [
+        "Янв", "Фев", "Мар", "Апр", "Май", "Июн",
+        "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек",
+    ]
+
     company = models.CharField(max_length=150)
     position = models.CharField(max_length=200)
     location = models.CharField(max_length=100, blank=True)
-    period_text = models.CharField(
-        max_length=100, help_text="Например: Фев 2026 — сейчас · 7 мес"
+    start_date = models.DateField(verbose_name="Дата начала")
+    end_date = models.DateField(
+        verbose_name="Дата окончания",
+        blank=True,
+        null=True,
+        help_text="Не заполняйте, если работаете по настоящее время",
     )
-    start_date = models.DateField(help_text="Только для сортировки по хронологии")
     description = CKEditor5Field("Описание", config_name="default", blank=True)
     tech_stack = models.CharField(max_length=300, blank=True, help_text="Через запятую")
     is_dev_role = models.BooleanField(
@@ -71,6 +83,28 @@ class Experience(models.Model):
 
     def tech_list(self):
         return [t.strip() for t in self.tech_stack.split(",") if t.strip()]
+
+    @property
+    def period_text(self) -> str:
+        """«Мар 2025 — настоящее время» либо «Ноя 2022 — Фев 2024»."""
+        start = self._format_month(self.start_date)
+        if self.end_date:
+            return f"{start} — {self._format_month(self.end_date)}"
+        return f"{start} — настоящее время"
+
+    @staticmethod
+    def _format_month(date: date) -> str:
+        return f"{Experience._MONTH_ABBR[date.month - 1]} {date.year}"
+
+    def clean(self):
+        if self.end_date and self.start_date and self.end_date <= self.start_date:
+            raise ValidationError(
+                {"end_date": "Дата окончания должна быть позже даты начала."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class SkillCategory(models.Model):

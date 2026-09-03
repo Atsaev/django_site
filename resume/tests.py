@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
-from resume.models import Profile
+from resume.models import Experience, Profile
 
 
 def _png(name='img.png', color='red'):
@@ -38,6 +38,7 @@ class ProfileAdminTests(TestCase):
         self.profile.photo = _png('one.png')
         self.profile.save()
         old_name = self.profile.photo.name
+        assert old_name
         self.assertTrue(self.profile.photo.storage.exists(old_name))
 
         # POST той же формы с НОВЫМ файлом (нет _clear checkbox'а)
@@ -60,11 +61,44 @@ class ProfileAdminTests(TestCase):
         self.assertFalse(self.profile.photo.storage.exists(old_name))  # старый физически удалён
 
     @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_experience_admin_rejects_end_before_start(self):
+        """Дата окончания не может быть раньше или равна дате начала."""
+        add_url = reverse('admin:resume_experience_add')
+        data = {
+            'company': 'X', 'position': 'Dev',
+            'start_date': '2023-05-10', 'end_date': '2023-05-01',
+            'is_dev_role': True, 'order': 0,
+            'tech_stack': '', 'location': '', 'description': '',
+            '_save': 'Save',
+        }
+        response = self.client.post(add_url, data)
+        self.assertEqual(response.status_code, 200)  # форма перерисована с ошибкой
+        self.assertContains(response, 'Дата окончания должна быть позже даты начала.')
+        self.assertFalse(Experience.objects.filter(position='Dev').exists())
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
+    def test_experience_admin_saves_with_blank_end(self):
+        """Пустая дата окончания допустима = работа по настоящее время."""
+        add_url = reverse('admin:resume_experience_add')
+        data = {
+            'company': 'X', 'position': 'Dev ongoing',
+            'start_date': '2023-05-10', 'end_date': '',
+            'is_dev_role': True, 'order': 0,
+            'tech_stack': '', 'location': '', 'description': '',
+            '_save': 'Save',
+        }
+        response = self.client.post(add_url, data)
+        self.assertRedirects(response, reverse('admin:resume_experience_changelist'))
+        exp = Experience.objects.get(position='Dev ongoing')
+        self.assertIsNone(exp.end_date)
+
+    @override_settings(MEDIA_ROOT=mkdtemp())
     def test_delete_profile_cleans_photo(self):
         """Удаление профиля из админки должно чистить photo и с диска."""
         self.profile.photo = _png('del.png')
         self.profile.save()
         name = self.profile.photo.name
+        assert name
         self.assertTrue(self.profile.photo.storage.exists(name))
 
         response = self.client.post(

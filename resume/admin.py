@@ -21,6 +21,17 @@ class ExperienceAdmin(admin.ModelAdmin):
     list_display = ("position", "company", "period_text", "is_dev_role", "order")
     list_editable = ("order", "is_dev_role")
     list_filter = ("is_dev_role",)
+    fields = [
+        "company",
+        "position",
+        "location",
+        "start_date",
+        "end_date",
+        "description",
+        "tech_stack",
+        "is_dev_role",
+        "order",
+    ]
 
 
 @admin.register(SkillCategory)
